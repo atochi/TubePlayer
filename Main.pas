@@ -43,7 +43,7 @@ const
 
   SOFTWARE_BBS_URI  = 'http://pc11.2ch.net/software/';
 
-  USERAGENT = 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)';
+  USERAGENT = 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1; Trident/4.0)';
 
   LAYOUT_INI   = 'layout.ini';
   CHECK_DAT    = 'check.dat';
@@ -87,7 +87,7 @@ const
     = ('http://(?:ime\.nu/)?(?:[^/]+\.)?youtube\.com/(?:(?:verify_age\?next_url=/)?(?:w/)?(?:watch)?(?:\?|%3F).*v(?:=|%3D)|(?:.+?/)?v/|vi/|.+?[?&]video_id=)([\w\-]{11})(?:&(?:.+))?',
        'http://(?:ime\.nu/)?(?:\w+\.)?youtube\.com/v/(.+)',
        'http://(?:ime\.nu/)?(?:www\.)?nicovideo\.jp/watch\?v=([^&#]+)(?:.+)?',
-       'http://(?:ime\.nu/)?(?:www\.)?nicovideo\.jp/watch(?:_result)?/([^/#]+)(?:.+)?',
+       'http://(?:ime\.nu/)?(?:www.flog.jp/w.php/http://)?(?:www\.)?nicovideo\.jp/watch/([^/]+)(?:.+)?',
        'http://(?:ime\.nu/)?(?:www\.)?nicovideo\.jp/redir\?p=(.+)');
 
   GET_TITLE     = '<title>(.+)<\/title>';
@@ -112,7 +112,7 @@ const
   YOUTUBE_DEFAULT_WIDTH2  = 450;
   YOUTUBE_DEFAULT_HEIGHT2 = 370;
 
-  YOUTUBE_GET_VIDEOID   = '(video_id=[^'']+)''';
+  YOUTUBE_GET_VIDEOID   = '&t=([^&]+)&';
   //YOUTUBE_GET_VIDEOID   = '\/player2\.swf\?([^\"]+)\"';
   YOUTUBE_GET_COMMENTS  = '([,\d]+) åèÇÃÉRÉÅÉìÉgÇÇ∑Ç◊Çƒå©ÇÈ'; //Comments:
   YOUTUBE_GET_FAVORITED = 'Ç®ãCÇ…ì¸ÇËÇ…ìoò^çœÇ›:</span> ([,\d]+) âÒ'; //Favorited:
@@ -126,7 +126,7 @@ const
 
   YOUTUBE_GET_USER_URI_FRONT     = 'http://www.youtube.com/api2_rest?method=youtube.videos.list_by_user&dev_id=';
 
-  YOUTUBE_GET_VIDEO_URI    = 'http://www.youtube.com/get_video?';
+  YOUTUBE_GET_VIDEO_URI    = 'http://www.youtube.com/get_video?&video_id=';
   YOUTUBE_USER_PROFILE_URI = 'http://www.youtube.com/user/';
 
   YOUTUBE_GET_WATCH_URI    = 'http://www.youtube.com/watch?v=';
@@ -5697,7 +5697,6 @@ var
   videoid_flag: boolean;
   comments_flag: boolean;
   favorited_flag: boolean;
-  pos: integer;
   dl_video_id : string;
   //URL: OleVariant;
 begin
@@ -5768,9 +5767,6 @@ begin
                   if Length(VideoData.dl_video_id) > 0 then
                   begin
                     VideoData.dl_video_id := RegExp.Replace(VideoData.dl_video_id, '$1');
-                    pos := PosEx('&title=', VideoData.dl_video_id, 1);
-                    if pos > 0 then
-                      VideoData.dl_video_id := Copy(VideoData.dl_video_id, 1, pos-1);
                     Log('VideoID:' + VideoData.dl_video_id);
                   end;
                   videoid_flag := True;

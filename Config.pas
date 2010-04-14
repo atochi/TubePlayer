@@ -297,7 +297,9 @@ var
 begin
   ini := TMemIniFile.Create(IniPath);
 
-  netUserAgent := ini.ReadString(INI_NET_SECT, 'UserAgent', USERAGENT);
+  netUserAgent := ini.ReadString(INI_NET_SECT, 'UserAgent', USERAGENT);  
+  if AnsiPos('MSIE 6.0', netUserAgent) > 0 then //YouTube‚ÍIE6‚Å‚ÍŽ‹’®•‰‰×‚É‚È‚Á‚½
+    netUserAgent := USERAGENT;
   netUseProxy    := ini.ReadBool(INI_NET_SECT, 'UseProxy', netUseProxy);
   netProxyServer := ini.ReadString(INI_NET_SECT, 'ProxyServer', '');
   netProxyPort   := ini.ReadInteger(INI_NET_SECT, 'ProxyPort', netProxyPort);
