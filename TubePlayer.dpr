@@ -19,7 +19,8 @@ uses
   FileVerInfo in 'Components\FileVerInfo.pas',
   HTTPSub in 'HTTPSub.pas',
   UFavorite in 'UFavorite.pas',
-  JMemory in 'Components\JMemory.pas';
+  JMemory in 'Components\JMemory.pas',
+  CommonUtils in 'CommonUtils.pas';
 
 {$R *.res}
 

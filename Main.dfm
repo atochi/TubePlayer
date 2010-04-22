@@ -480,11 +480,12 @@ object MainWnd: TMainWnd
               Caption = 'YouTube('#38306#36899#26908#32034')(&1)'
               ImageIndex = 13
               RadioItem = True
+              Visible = False
               OnClick = ActionToggleSearchTargetExecute
             end
             object MenuSearchToggleSearchTargetYouTubeFromWebSite: TSpTBXItem
               Tag = 100
-              Caption = 'YouTube('#12469#12452#12488#20869#26908#32034')(&2)'
+              Caption = 'YouTube('#12459#12473#12479#12512#26908#32034')(&2)'
               ImageIndex = 13
               OnClick = ActionToggleSearchTargetExecute
             end
@@ -652,7 +653,7 @@ object MainWnd: TMainWnd
             end
             object MenuSearchToggleSearchTargetYouTubeSetting: TSpTBXSubmenuItem
               Tag = 9999
-              Caption = 'YouTube('#12469#12452#12488#20869#26908#32034')'#12398#35373#23450'(&Z)'
+              Caption = 'YouTube'#65288#12459#12473#12479#12512#26908#32034#65289#12398#35373#23450'(&Z)'
               object MenuSearchToggleSearchTargetYouTubeSettingSort: TSpTBXSubmenuItem
                 Caption = #12477#12540#12488'(&S)'
                 OnClick = MenuSearchToggleSearchTargetYouTubeSettingSortClick
@@ -930,7 +931,6 @@ object MainWnd: TMainWnd
             end
             object MenuSearchYouTubeCategorySetting: TSpTBXSubmenuItem
               Caption = #12459#12486#12468#12522#35373#23450'(&Z)'
-              Visible = False
               OnClick = MenuSearchYouTubeCategorySettingClick
               object MenuSearchYouTubeCategorySetting0: TSpTBXItem
                 Caption = #12377#12409#12390'(&A)'

@@ -27,6 +27,7 @@ uses
   spSkinGold, spSkinGreener, spSkinHackerBW, spSkinVistaBlue,
   //etc
   SHDocVw_TLB, MSHTML_TLB, //DARAOのcss書き換え用
+  CommonUtils,
   //IdCookie, //セッション取得用
   WinInet, URLMon, //Proxy切り替え用
   FileVerInfo, UAsync, USynchro, USharedMem, StrSub, HTTPSub, JLTrayIcon,
@@ -117,14 +118,11 @@ const
   YOUTUBE_GET_COMMENTS  = '([,\d]+) 件のコメントをすべて見る'; //Comments:
   YOUTUBE_GET_FAVORITED = 'お気に入りに登録済み:</span> ([,\d]+) 回'; //Favorited:
 
-  YOUTUBE_GET_DETAILS_URI_FRONT  = 'http://www.youtube.com/api2_rest?method=youtube.videos.get_details&dev_id=';
-  YOUTUBE_DEV_ID = '0YBoQTWv_hA';
-  YOUTUBE_GET_DETAILS_URI_FRONT_BACK = '&video_id=';
-
-  YOUTUBE_GET_SEARCH_URI_FRONT   = 'http://www.youtube.com/api2_rest?method=youtube.videos.list_by_tag&dev_id=';
-  YOUTUBE_GET_RELATED_URI_FRONT  = 'http://www.youtube.com/api2_rest?method=youtube.videos.list_by_related&dev_id=';
-
-  YOUTUBE_GET_USER_URI_FRONT     = 'http://www.youtube.com/api2_rest?method=youtube.videos.list_by_user&dev_id=';
+  YOUTUBE_GET_URI_FRONT = 'http://gdata.youtube.com/feeds/api/videos';
+  YOUTUBE_GET_SEARCH_URI_FRONT  = YOUTUBE_GET_URI_FRONT;
+  YOUTUBE_GET_DETAILS_URI_FRONT = YOUTUBE_GET_URI_FRONT + '/';
+  YOUTUBE_GET_RELATED_URI_FRONT = YOUTUBE_GET_DETAILS_URI_FRONT;
+  YOUTUBE_GET_RELATED_URI_BACK = '/related';
 
   YOUTUBE_GET_VIDEO_URI    = 'http://www.youtube.com/get_video?&video_id=';
   YOUTUBE_USER_PROFILE_URI = 'http://www.youtube.com/user/';
@@ -140,10 +138,17 @@ const
   YOUTUBE_VIDEO_PLAYER2 = 'http://www.youtube.com/player2.swf';
   //YOUTUBE_VIDEO_PLAYER2 = 'http://s.ytimg.com/yt/swf/watch-vfl55589.swf';
 
-  YOUTUBE_GET_FEATURED_URI = 'http://www.youtube.com/api2_rest?method=youtube.videos.list_featured&dev_id=';
-
-  YOUTUBE_GET_POPULAR_URI_FRONT = 'http://www.youtube.com/api2_rest?method=youtube.videos.list_popular&dev_id=';
-  YOUTUBE_GET_POPULAR_URI_BACK  = '&time_range=';
+  YOUTUBE_GET_STANDARDFEEDS_URI_BASE = 'http://gdata.youtube.com/feeds/api/standardfeeds';
+  YOUTUBE_GET_STANDARDFEEDS_URI = YOUTUBE_GET_STANDARDFEEDS_URI_BASE + '/JP';
+  YOUTUBE_GET_FEATURED_ALL_URI = YOUTUBE_GET_STANDARDFEEDS_URI_BASE + '/recently_featured';
+  YOUTUBE_GET_POPULAR_ALL_URI_FRONT = YOUTUBE_GET_STANDARDFEEDS_URI_BASE + '/most_viewed';
+  YOUTUBE_GET_RECENT_URI = YOUTUBE_GET_STANDARDFEEDS_URI + '/most_recent';
+  YOUTUBE_GET_POPULAR_URI_FRONT = YOUTUBE_GET_STANDARDFEEDS_URI + '/most_viewed';
+  YOUTUBE_GET_RATED_URI_FRONT = YOUTUBE_GET_STANDARDFEEDS_URI + '/top_rated';
+  YOUTUBE_GET_DISCUSSED_URI_FRONT = YOUTUBE_GET_STANDARDFEEDS_URI + '/most_discussed';
+  YOUTUBE_GET_FAVORITES_URI_FRONT = YOUTUBE_GET_STANDARDFEEDS_URI + '/top_favorites';
+  YOUTUBE_GET_LINKED_URI_FRONT = YOUTUBE_GET_STANDARDFEEDS_URI + '/most_linked';
+  YOUTUBE_GET_RESPONDED_URI_FRONT = YOUTUBE_GET_STANDARDFEEDS_URI + '/most_responded';
 
   YOUTUBE_GET_SEARCH_URI = 'http://www.youtube.com/results?search_type=search_videos&search_query=';
 
@@ -582,6 +587,39 @@ type
     CommentList:        TCommentList;
     RelatedList:        TRelatedList;
     video_type:         integer; //ビデオのタイプ(0:YouTube,1:nicovideo(YouTube),2:nicovideo(AmebaVision),3:nicovideo(SMILEVIDEO),4:nicovideo(etc),5:nicovideo(?p=))
+  end;
+
+  TANLVideoData = class(TObject)
+  public
+    video_id:           string; //動画のID                                   id
+    upload_unixtime:    string; //動画がアップロードされた時間(unixtime)     published
+    upload_time:        string; //動画がアップロードされた時間
+    update_unixtime:    string; //更新された時間(unixtime)                   updated
+    update_time:        string; //更新された時間
+    author:             string; //動画を所有しているユーザー名               author name
+    author_link:        string; //動画を所有しているユーザー名(リンクつき)   author uri
+    comment_url:        string; //コメントURL                                gd:comments.feedLink href
+    comment_count:      string; //コメント数                                 gd:comments.feedLink countHint
+    channnel:           string; //ビデオの所属するカテゴリ名                 media:group.media:category
+    description:        string; //動画の説明文                               media:group.media:description
+    keywords:           string; //ビデオのタグ一覧                           media:group.media:keywords
+    player_url:         string; //プレイヤーのURL                            media:group.media:player url
+    thumbnail_url0:     string; //ビデオのサムネイルのURL                    media:group.media:thumbnail url
+    thumbnail_url1:     string; //ビデオのサムネイルのURL                    media:group.media:thumbnail url
+    thumbnail_url2:     string; //ビデオのサムネイルのURL                    media:group.media:thumbnail url
+    thumbnail_url3:     string; //ビデオのサムネイルのURL                    media:group.media:thumbnail url
+    thumbnail_url:      string; //ビデオのサムネイルのURL(default)
+    video_title:        string; //ビデオのタイトル                           media:group.media:title
+    playtime_seconds:   string; //動画の再生時間(秒)                         media:group.yt:duration seconds
+    playtime:           string; //動画の再生時間(x:xx)
+    rating_avg:         string; //評価平均                                   gd:rating average
+    rating:             string; //5段階評価(評価平均を四捨五入、★で表示)
+    rationg_count:      string; //評価数                                     gd:rating numRaters
+    favorited_count:    string; //お気に入りに登録された回数                 yt:statistics favoriteCount
+    view_count:         string; //閲覧回数                                   yt:statistics viewCount
+    recording_date:     string; //録画した時間                               yt:recorded
+    recording_location: string; //録画した場所                               yt:location
+    video_type:         integer; //(0: YouTube 1:nicovideo)
   end;
 
   TMainWnd = class(TForm)
@@ -1139,7 +1177,6 @@ type
     procedure WebBrowser4NavigateComplete2(ASender: TObject; const pDisp: IDispatch;
       var URL: OleVariant);
     procedure WebBrowserTitleChange(ASender: TObject; const Text: WideString);
-    procedure Log(const str: string);
     procedure LoadCustomImageList(const path: string; var ImageList: TImageList);
     procedure ApplicationEventsMinimize(Sender: TObject);
     procedure ApplicationEventsDeactivate(Sender: TObject);
@@ -1255,7 +1292,6 @@ type
     procedure GetYouTubeDataExecute(Sender: TObject);
     procedure GetYouTubeDataFromSiteExecute(Sender: TObject);
     procedure OnYouTubeGetSearchResults(sender: TAsyncReq);
-    procedure OnYouTubeGetVideos(sender: TAsyncReq);
     function IsPrivacyZoneOK: boolean;
     procedure AddRecentlyViewed(const Title: String; VideoID: String; Location: String);
     procedure RecentlyViewedClick(Sender: TObject);
@@ -1384,7 +1420,8 @@ type
     procedure OnDoneNicoVideoGetURI(sender: TAsyncReq);
     procedure OnDoneYouTube(sender: TAsyncReq);
     procedure OnDoneYouTubeDetails(sender: TAsyncReq);
-    //procedure OnDoneYouTubeRelated(sender: TAsyncReq);
+    procedure OnDoneYouTubeComments(sender: TAsyncReq);
+    procedure OnDoneYouTubeRelated(sender: TAsyncReq);
     procedure OnAnalysis(sender: TAsyncReq);
     procedure OnTubePreConnect(sender: TAsyncReq; code: TAsyncNotifyCode);
     procedure OnNicoVideoSearch(sender: TAsyncReq);
@@ -1392,10 +1429,13 @@ type
     procedure OnYouTubeSearch(sender: TAsyncReq);
     procedure OnDoneNicoIchiba(sender: TAsyncReq);
     procedure OnDoneNicoMyList(sender: TAsyncReq);
+    function YouTubeEntryXMLAnalize(EntryNode: IXMLNode; NS_media, NS_gd, NS_yt: DOMString): TANLVideoData;
   protected
     procedure WndProc(var Msg: TMessage); override;
   public
     { Public 宣言 }
+    procedure Log(const str: string); overload;
+    procedure Log(const FormatStr: string; FormatAry: array of const); overload;
   end;
 
 //指定した拡張子に関連付けられた実行ファイルのフルパス名を取得するAPI
@@ -1490,7 +1530,9 @@ var
   SearchList: TList;     //検索結果を格納
   SearchType: Integer;   //検索先(0:YouTube(検索) 10:YouTube(APIデータ取得) 20:YouTube(データ取得) 1:ニコニコ動画(検索) 2:ニコニコ動画(ランキング) 3:ニコニコ動画(新着投稿) 4:ニコニコ動画(きまぐれ検索) 5:ニコニコ動画(タグ検索) 6:ニコニコ動画(ホットリスト) 8:マイリスト 9:ニコニコ市場)
   tmpSearchWord: string;
+  tmpLabelWord: string;
   SearchPage: integer;
+  totalResults: Integer;
   SearchedEnd: boolean; //絞込みしたかどうか
 
   AsinList: TList;        //ニコニコ市場(Amazon)のデータを格納
@@ -3147,6 +3189,11 @@ begin
   SendMessage(MemoLog.Handle, EM_SETSEL, SelPos, SelPos);
   MemoLog.SelStart := SelPos;
   MemoLog.SelLength := 0;
+end;
+
+procedure TMainWnd.Log(const FormatStr: string; FormatAry: array of const);
+begin
+  Log(Format(FormatStr, FormatAry));
 end;
 
 //カスタムイメージを読み込んで適用する
@@ -5973,220 +6020,66 @@ begin
     Log('');
     SpTBXDockablePanelVideoInfo.Caption := 'ビデオ情報' + ' <取得中>';
     Log('詳細データ取得開始 (' + VideoData.video_id + ')');
-    //Log(YOUTUBE_GET_DETAILS_URI_FRONT + YOUTUBE_DEV_ID + YOUTUBE_GET_DETAILS_URI_FRONT_BACK  + VideoData.video_id);
-    procGet := AsyncManager.Get(YOUTUBE_GET_DETAILS_URI_FRONT + YOUTUBE_DEV_ID + YOUTUBE_GET_DETAILS_URI_FRONT_BACK  + VideoData.video_id, OnDoneYouTubeDetails);
+    //Log(YOUTUBE_GET_DETAILS_URI_FRONT + VideoData.video_id);
+    procGet := AsyncManager.Get(YOUTUBE_GET_DETAILS_URI_FRONT + VideoData.video_id, OnDoneYouTubeDetails);
   end;
 end;
 
 //YouTubeから取得した情報を処理する(YouTube Apiからの取得完了時)
 procedure TMainWnd.OnDoneYouTubeDetails(sender: TAsyncReq);
+var
+  CommentsURL: String;
 
   procedure Build(XMLNode: IXMLNode);
   var
-    i, j: integer;
-    rate: integer;
-    second: integer;
-    NewXMLNode: IXMLNode;
-    NewXMLNode2: IXMLNode;
+    NS_media, NS_gd, NS_yt: DOMString;
+    ANLData: TANLVideoData;
   begin
-    if (XMLNode.NodeType = ntElement) then
+    NS_media := VarToWStr(XMLNode.Attributes['xmlns:media']);
+    NS_gd := VarToWStr(XMLNode.Attributes['xmlns:gd']);
+    NS_yt := VarToWStr(XMLNode.Attributes['xmlns:yt']);
+
+    ANLData := YouTubeEntryXMLAnalize(XMLNode, NS_media, NS_gd, NS_yt);
+    if Assigned(ANLData) then
     begin
-      if (XMLNode.NodeName = 'video_details') then
-      begin
-        DateSeparator := '/';
-        try
-          VideoData.author := XMLNode.ChildValues['author'];
-        except
-          VideoData.author := '';
-        end;
-        if Length(VideoData.author) > 0 then
-          VideoData.author_link := '<a href="' + YOUTUBE_USER_PROFILE_URI + VideoData.author +'">' + VideoData.author + '</a>';
-
-        try
-          VideoData.video_title := XMLNode.ChildValues['title'];
-        except
-          VideoData.video_title := '';
-        end;
-        try
-          VideoData.rating_avg := XMLNode.ChildValues['rating_avg'];
-        except
-          VideoData.rating_avg := '';
-        end;
-        if Length(VideoData.rating_avg) > 0 then
+      try
+        with VideoData do
         begin
-          rate := Round(StrToFloatDef(VideoData.rating_avg, 0));
-          case rate of
-            0:   VideoData.rating := '☆☆☆☆☆';
-            1:   VideoData.rating := '★☆☆☆☆';
-            2:   VideoData.rating := '★★☆☆☆';
-            3:   VideoData.rating := '★★★☆☆';
-            4:   VideoData.rating := '★★★★☆';
-            else VideoData.rating := '★★★★★';
-          end;
+          video_type := ANLData.video_type;
+          video_id := ANLData.video_id;
+          author := ANLData.author;
+          author_link := ANLData.author_link;
+          channnel := ANLData.channnel;
+          description := ANLData.description;
+          video_title := ANLData.video_title;
+          thumbnail_url1 := ANLData.thumbnail_url;
+          thumbnail_url2 := ANLData.thumbnail_url2;
+          thumbnail_url3 := ANLData.thumbnail_url1;
+          playtime_seconds := ANLData.playtime_seconds;
+          playtime := ANLData.playtime;
+          tags := ANLData.keywords;
+          rating_avg := ANLData.rating_avg;
+          rating := ANLData.rating;
+          rationg_count := ANLData.rationg_count;
+          view_count := ANLData.view_count;
+          update_time := ANLData.update_time;
+          upload_time := ANLData.upload_time;
+          comment_count := ANLData.comment_count;
+          favorited_count := ANLData.favorited_count;
+          recording_date := ANLData.recording_date;
+          recording_location := ANLData.recording_location;
         end;
-
-        try
-          VideoData.rationg_count := XMLNode.ChildValues['rating_count'];
-        except
-          VideoData.rationg_count := '';
-        end;
-        try
-          VideoData.tags := XMLNode.ChildValues['tags'];
-        except
-          VideoData.tags := '';
-        end;
-        try
-          VideoData.description := XMLNode.ChildValues['description'];
-        except
-          VideoData.description := '';
-        end;
-
-        try
-          VideoData.update_time := XMLNode.ChildValues['update_time'];
-        except
-          VideoData.update_time := '';
-        end;
-        if Length(VideoData.update_time) > 0 then
-          VideoData.update_time := UnixTime2String(VideoData.update_time);
-
-        try
-          VideoData.view_count := XMLNode.ChildValues['view_count'];
-        except
-          VideoData.view_count := '';
-        end;
-
-        try
-          VideoData.upload_time := XMLNode.ChildValues['upload_time'];
-        except
-          VideoData.upload_time := '';
-        end;
-        if Length(VideoData.upload_time) > 0 then
-          VideoData.upload_time := UnixTime2String(VideoData.upload_time);
-
-
-        try
-          VideoData.playtime_seconds := XMLNode.ChildValues['length_seconds'];
-        except
-          VideoData.playtime_seconds := '';
-        end;
-        if Length(VideoData.playtime_seconds) > 0 then
-        begin
-          second := StrToIntDef(VideoData.playtime_seconds, 0);
-          try
-            VideoData.playtime := FormatFloat('0#', (second div 60)) + ':' + FormatFloat('0#', (second mod 60));
-          except
-            VideoData.playtime := VideoData.playtime_seconds + 'sec';
-          end;
-        end;
-
-        try
-          VideoData.recording_date := XMLNode.ChildValues['recording_date'];
-        except
-          VideoData.recording_date := '';
-        end;
-
-        if Length(VideoData.recording_date) > 0 then
-        begin
-          VideoData.recording_date := CustomStringReplace(VideoData.recording_date, '-', '/', false);
-          try
-            VideoData.recording_date := FormatDateTime('yyyy/mm/dd(aaa)', StrToDateTime(VideoData.recording_date));
-          except
-            VideoData.recording_date := XMLNode.ChildValues['recording_date'];
-          end;
-        end;
-
-        try
-          VideoData.recording_location := XMLNode.ChildValues['recording_location'];
-        except
-          VideoData.recording_location := '';
-        end;
-        try
-          VideoData.recording_country := XMLNode.ChildValues['recording_country'];
-        except
-          VideoData.recording_country := '';
-        end;
-        try
-          VideoData.thumbnail_url1 := XMLNode.ChildValues['thumbnail_url'];
-        except
-          VideoData.thumbnail_url1 := '';
-        end;
-        if Length(VideoData.thumbnail_url1) > 0 then
-        begin
-          VideoData.thumbnail_url2 := CustomStringReplace(VideoData.thumbnail_url1, '/default.jpg', '/2.jpg');
-          VideoData.thumbnail_url3 := CustomStringReplace(VideoData.thumbnail_url1, '/default.jpg', '/3.jpg');
-          VideoData.thumbnail_url1 := CustomStringReplace(VideoData.thumbnail_url1, '/default.jpg', '/1.jpg');
-        end;
-
-        for i :=  0 to XMLNode.ChildNodes.Count - 1 do
-        begin
-          NewXMLNode := XMLNode.ChildNodes.Nodes[i];
-          if (NewXMLNode.NodeName = 'channel_list') then
-          begin
-            try
-              VideoData.channnel := XMLNode.ChildValues['channel'];
-            except
-              VideoData.channnel := '';
-            end;
-          end else
-          if (NewXMLNode.NodeName = 'comment_list') then
-          begin
-            for j := (NewXMLNode.ChildNodes.Count - 1) downto 0 do
-            begin
-              NewXMLNode2 := NewXMLNode.ChildNodes.Nodes[j];
-              if (NewXMLNode2.NodeName = 'comment') then
-              begin
-                SetLength(VideoData.CommentList, Length(VideoData.CommentList) + 1);
-                with VideoData.CommentList[Length(VideoData.CommentList) -1] do
-                begin
-                  number := IntToStr(NewXMLNode.ChildNodes.Count - j);
-                  try
-                    author := NewXMLNode2.ChildValues['author'];
-                  except
-                    author := '';
-                  end;
-                  if Length(author) > 0 then
-                  begin
-                    author_link := '<a href="' + YOUTUBE_USER_PROFILE_URI + author +'">' + author + '</a>';
-                  end else
-                    author_link := '';
-                  try
-                    text := NewXMLNode2.ChildValues['text'];
-                    if AnsiEndsStr('?', text) then //末尾に?が付加されるのを暫定対処
-                      SetLength(text, Length(text)-1);
-                  except
-                    text := '';
-                  end;
-                  try
-                    time := NewXMLNode2.ChildValues['time'];
-                  except
-                    time := '';
-                  end;
-                  if Length(time) > 0 then
-                    time := UnixTime2String(time);
-                end;
-              end;
-            end;
-          end;
-        end;
-
-      end else
-      begin
-        for i :=  0 to XMLNode.ChildNodes.Count - 1 do
-        begin
-          Build(XMLNode.ChildNodes.Nodes[i]);
-        end;
+        CommentsURL := ANLData.comment_url;
+      finally
+        ANLData.Free;
       end;
     end;
   end;
 
 var
-  i: integer;
-  innerHTML: String;
-  Res: String;
-  ContentList: TStringList;
-  Content: String;
   HintString: String;
 begin
+  CommentsURL := '';
   if procGet = sender then
   begin
     Log('【YouTube(OnDoneYouTubeDetails)】' + sender.IdHTTP.ResponseText);
@@ -6194,22 +6087,8 @@ begin
     200: (* OK *)
       begin
         Log('データ分析開始');
+        XMLDocument.XML.Text := procGet.Content;
 
-        ContentList := TStringList.Create;
-        try
-          ContentList.Text := procGet.Content;
-          for i := 0 to ContentList.Count -1 do
-          begin
-            Content := ContentList[i];
-            if Length(Content) > 0 then
-              XMLDocument.XML.Add(Content)
-            else
-              XMLDocument.XML[XMLDocument.XML.Count-1] := XMLDocument.XML[XMLDocument.XML.Count-1] + '$BR'
-          end;
-        finally
-          ContentList.Clear;
-        end;
- 
         if XMLDocument.XML.Count <= 0 then
         begin
           Log('有効なデータを取得できませんでした。');
@@ -6223,7 +6102,6 @@ begin
         except
           on E: Exception do
           begin
-            //MessageDlg(e.Message  + #13#10 + 'XMLの解析に失敗しました。', mtError, [mbOK], -1);
             Log(e.Message);
             Log('XMLの解析に失敗しました。');
             SpTBXDockablePanelVideoInfo.Caption := 'ビデオ情報' + ' <解析失敗>';
@@ -6236,56 +6114,6 @@ begin
         Build(XMLDocument.DocumentElement);
         XMLDocument.Active := false;
         XMLDocument.XML.Clear;
-
-        innerHTML := HeaderHTML;
-
-        for i := 0 to Length(VideoData.CommentList) -1 do
-        begin
-          Res := ResHTML;
-          with VideoData.CommentList[i] do
-          begin
-            Res := CustomStringReplace(Res, '$BR', '<br>');
-            Res := CustomStringReplace(Res, '$NUMBER', number);
-            Res := CustomStringReplace(Res, '$NAME_LINK', author_link);
-            Res := CustomStringReplace(Res, '$NAME', author);
-            Res := CustomStringReplace(Res, '$MESSAGE', text);
-            Res := CustomStringReplace(Res, '$DATE', time);
-          end;
-          innerHTML := innerHTML + Res;
-        end;
-
-        innerHTML := innerHTML + FooterHTML;
-
-        with VideoData do
-        begin
-          innerHTML := CustomStringReplace(innerHTML, '$SKINPATH', Config.optSkinPath);
-          innerHTML := CustomStringReplace(innerHTML, '$BR', '<br>');
-          innerHTML := CustomStringReplace(innerHTML, '$VIDEOTITLE', video_title);
-          innerHTML := CustomStringReplace(innerHTML, '$VIDEOID', video_id);
-          innerHTML := CustomStringReplace(innerHTML, '$AUTHOR_LINK', author_link);
-          innerHTML := CustomStringReplace(innerHTML, '$AUTHOR', author);
-          innerHTML := CustomStringReplace(innerHTML, '$THUMBNAIL_URL1', thumbnail_url1);
-          innerHTML := CustomStringReplace(innerHTML, '$THUMBNAIL_URL2', thumbnail_url2);
-          innerHTML := CustomStringReplace(innerHTML, '$THUMBNAIL_URL3', thumbnail_url3);
-          innerHTML := CustomStringReplace(innerHTML, '$TAGS', tags);
-          innerHTML := CustomStringReplace(innerHTML, '$CHANNEL', channnel);
-          innerHTML := CustomStringReplace(innerHTML, '$RATING_AVG', rating_avg);
-          innerHTML := CustomStringReplace(innerHTML, '$RATING_COUNT', rationg_count);
-          innerHTML := CustomStringReplace(innerHTML, '$RATING', rating);
-          innerHTML := CustomStringReplace(innerHTML, '$VIEW_COUNT', view_count);
-          innerHTML := CustomStringReplace(innerHTML, '$DESCRIPTION', description);
-          innerHTML := CustomStringReplace(innerHTML, '$COMMENT_COUNT', comment_count);
-          innerHTML := CustomStringReplace(innerHTML, '$FAVORITED_COUNT', favorited_count);
-          innerHTML := CustomStringReplace(innerHTML, '$UPDATE_TIME', update_time);
-          innerHTML := CustomStringReplace(innerHTML, '$UPLOAD_TIME', upload_time);
-          innerHTML := CustomStringReplace(innerHTML, '$PLAYTIME_SECONDS', playtime_seconds);
-          innerHTML := CustomStringReplace(innerHTML, '$PLAYTIME', playtime);
-          innerHTML := CustomStringReplace(innerHTML, '$RECORDING_DATE', recording_date);
-          innerHTML := CustomStringReplace(innerHTML, '$RECORDING_LOCATION', recording_location);
-          innerHTML := CustomStringReplace(innerHTML, '$RECORDING_COUNTRY', recording_country);
-        end;
-
-        WebBrowser2.LoadFromString(innerHTML);
 
         if Length(VideoData.video_title) > 0 then
         begin
@@ -6310,7 +6138,6 @@ begin
             SpTBXTitleBar.Caption := Self.Caption;
         end;
 
-        SpTBXDockablePanelVideoInfo.Caption := 'ビデオ情報';
         Log('データ分析完了');
       end;
     else
@@ -6322,268 +6149,312 @@ begin
 
     procGet := nil;
 
-    (*
-    if Length(VideoData.tags) > 0 then
+    if Length(CommentsURL) > 0 then
     begin
-      Log('');
-      SpTBXDockablePanelVideoRelated.Caption := '関連ビデオ' + ' <取得中>';
-      Log('関連ビデオ取得開始 (' + VideoData.video_id + ')');
-      procGet := AsyncManager.Get(YOUTUBE_URI + 'related_ajax?action_get_related=1&video_id=' + VideoData.video_id + '&view_type=L&watch3=1&search=' + URLEncode(VideoData.tags), OnDoneYouTubeRelated);
+      Log('コメント取得開始 (' + VideoData.video_id + ')');
+      procGet := AsyncManager.Get(CommentsURL, OnDoneYouTubeComments);
     end;
-    *)
   end;
 end;
 
-{
+procedure TMainWnd.OnDoneYouTubeComments(sender: TAsyncReq);
+  procedure Build(XMLNode: IXMLNode);
+  var
+    EntryNode: IXMLNode;
+    Node: IXMLNode;
+    NS_openSearch: DOMString;
+    itemsPerPage: Integer;
+    i: Integer;
+    unixtime: string;
+  begin
+    NS_openSearch := VarToWStr(XMLNode.Attributes['xmlns:openSearch']);
+    Node := XMLNode.ChildNodes.FindNode('itemsPerPage', NS_openSearch);
+    if Assigned(Node) then
+      itemsPerPage := VarToInt(Node.NodeValue)
+    else
+      exit;
+
+    SetLength(VideoData.CommentList, itemsPerPage);
+
+    EntryNode := XMLNode.ChildNodes.FindNode('entry');
+    i := 0;
+    while Assigned(EntryNode) and (EntryNode.NodeName = 'entry') do
+    begin
+      with VideoData.CommentList[i] do
+      begin
+        number := IntToStr(i + 1);
+
+        Node := EntryNode.ChildNodes.FindNode('author');
+        if Assigned(Node) then
+        begin
+          author := VarToStr(Node.ChildValues['name']);
+          author_link := Format('<a href="%s">%s</a>', [VarToStr(Node.ChildValues['uri']), author]);
+        end;
+
+        text := VarToStr(EntryNode.ChildValues['content']);
+        unixtime := VarToStr(EntryNode.ChildValues['published']);
+        if Length(unixtime) > 0 then
+          time := UnixTime2String(unixtime);
+      end;
+      EntryNode := XMLNode.ChildNodes.FindSibling(EntryNode, 1);
+      Inc(i);
+    end;
+    
+    if i < itemsPerPage - 1 then
+      SetLength(VideoData.CommentList, i + 1);
+  end;
+
+var
+  i: integer;
+  innerHTML: String;
+  Res: String;
+begin
+  try
+    if procGet = sender then
+    begin
+      Log('【YouTube(OnDoneYouTubeComments)】' + sender.IdHTTP.ResponseText);
+      case sender.IdHTTP.ResponseCode of
+      200: (* OK *)
+        begin
+          Log('データ分析開始');
+          XMLDocument.XML.Text := procGet.Content;
+
+          if XMLDocument.XML.Count <= 0 then
+          begin
+            Log('有効なデータを取得できませんでした。');
+            Log('データ分析完了');
+            exit;
+          end;
+
+          try
+            XMLDocument.Active := True;
+          except
+            on E: Exception do
+            begin
+              Log(e.Message);
+              Log('XMLの解析に失敗しました。');
+              SpTBXDockablePanelVideoInfo.Caption := 'ビデオ情報' + ' <解析失敗>';
+              XMLDocument.Active := false;
+              XMLDocument.XML.Clear;
+              exit;
+            end;
+          end;
+          Build(XMLDocument.DocumentElement);
+          XMLDocument.Active := false;
+          XMLDocument.XML.Clear;
+
+          innerHTML := HeaderHTML;
+
+          for i := 0 to Length(VideoData.CommentList) -1 do
+          begin
+            Res := ResHTML;
+            with VideoData.CommentList[i] do
+            begin
+              Res := CustomStringReplace(Res, '$BR', '<br>');
+              Res := CustomStringReplace(Res, '$NUMBER', number);
+              Res := CustomStringReplace(Res, '$NAME_LINK', author_link);
+              Res := CustomStringReplace(Res, '$NAME', author);
+              Res := CustomStringReplace(Res, '$MESSAGE', text);
+              Res := CustomStringReplace(Res, '$DATE', time);
+            end;
+            innerHTML := innerHTML + Res;
+          end;
+
+          innerHTML := innerHTML + FooterHTML;
+
+          with VideoData do
+          begin
+            innerHTML := CustomStringReplace(innerHTML, '$SKINPATH', Config.optSkinPath);
+            innerHTML := CustomStringReplace(innerHTML, '$BR', '<br>');
+            innerHTML := CustomStringReplace(innerHTML, '$VIDEOTITLE', video_title);
+            innerHTML := CustomStringReplace(innerHTML, '$VIDEOID', video_id);
+            innerHTML := CustomStringReplace(innerHTML, '$AUTHOR_LINK', author_link);
+            innerHTML := CustomStringReplace(innerHTML, '$AUTHOR', author);
+            innerHTML := CustomStringReplace(innerHTML, '$THUMBNAIL_URL1', thumbnail_url1);
+            innerHTML := CustomStringReplace(innerHTML, '$THUMBNAIL_URL2', thumbnail_url2);
+            innerHTML := CustomStringReplace(innerHTML, '$THUMBNAIL_URL3', thumbnail_url3);
+            innerHTML := CustomStringReplace(innerHTML, '$TAGS', tags);
+            innerHTML := CustomStringReplace(innerHTML, '$CHANNEL', channnel);
+            innerHTML := CustomStringReplace(innerHTML, '$RATING_AVG', rating_avg);
+            innerHTML := CustomStringReplace(innerHTML, '$RATING_COUNT', rationg_count);
+            innerHTML := CustomStringReplace(innerHTML, '$RATING', rating);
+            innerHTML := CustomStringReplace(innerHTML, '$VIEW_COUNT', view_count);
+            innerHTML := CustomStringReplace(innerHTML, '$DESCRIPTION', description);
+            innerHTML := CustomStringReplace(innerHTML, '$COMMENT_COUNT', comment_count);
+            innerHTML := CustomStringReplace(innerHTML, '$FAVORITED_COUNT', favorited_count);
+            innerHTML := CustomStringReplace(innerHTML, '$UPDATE_TIME', update_time);
+            innerHTML := CustomStringReplace(innerHTML, '$UPLOAD_TIME', upload_time);
+            innerHTML := CustomStringReplace(innerHTML, '$PLAYTIME_SECONDS', playtime_seconds);
+            innerHTML := CustomStringReplace(innerHTML, '$PLAYTIME', playtime);
+            innerHTML := CustomStringReplace(innerHTML, '$RECORDING_DATE', recording_date);
+            innerHTML := CustomStringReplace(innerHTML, '$RECORDING_LOCATION', recording_location);
+            innerHTML := CustomStringReplace(innerHTML, '$RECORDING_COUNTRY', recording_country);
+          end;
+
+          WebBrowser2.LoadFromString(innerHTML);
+
+          Log('データ分析完了');
+
+          SpTBXDockablePanelVideoInfo.Caption := 'ビデオ情報';
+        end;
+      else
+        begin
+          SpTBXDockablePanelVideoInfo.Caption := 'ビデオ情報' + ' <取得失敗>';
+          Log('コメントの取得に失敗しました。');
+        end;
+      end;
+    end;
+  finally
+    procGet := nil;
+  end;
+
+  if Length(VideoData.tags) > 0 then
+  begin
+    Log('');
+    SpTBXDockablePanelVideoRelated.Caption := '関連ビデオ' + ' <取得中>';
+    Log('関連ビデオ取得開始 (' + VideoData.video_id + ')');
+    procGet := AsyncManager.Get(YOUTUBE_GET_RELATED_URI_FRONT + VideoData.video_id + YOUTUBE_GET_RELATED_URI_BACK, OnDoneYouTubeRelated);
+  end;
+end;
+
+
 //YouTubeから取得した情報を処理する(RelatedVideoの取得完了時)
 procedure TMainWnd.OnDoneYouTubeRelated(sender: TAsyncReq);
 
-  procedure SetVideoData(sl: TStringList);
-  const
-    GET_VIDEO_ID          = '\/watch\?v=([^"]+)"';
-    GET_VIDEO_TITLE       = 'title="([^"]+)"';
-    GET_THUMBNAIL_URL1    = '''(http://.+?/default\.jpg)'''; //'src="([^"]+)"';
-    GET_PLAYTIME_SECONDS  = '(?:\d+):(?:\d+)';
-    GET_AUTHOR            = 'href="/user/([^"]+)"';
-    GET_VIEW_COUNT        = '再生回数 ([\d,]+)';
+  procedure Build(XMLNode: IXMLNode);
   var
-    i: integer;
-    EntryFlag: boolean;
-    imgFlag: boolean;
-    idFlag: boolean;
-    titleFlag: boolean;
-    timeFlag: boolean;
-    fromFlag: boolean;
-    viewsFlag: boolean;
-    Matches: MatchCollection;
-    tmp: String;
-
-    procedure ClearFlag;
-    begin
-      imgFlag := false;
-      idFlag := false;
-      titleFlag := false;
-      timeFlag := false;
-      fromFlag := false;
-      viewsFlag := false;
-    end;
-
+    EntryNode: IXMLNode;
+    Node: IXMLNode;
+    NS_media, NS_gd, NS_yt, NS_openSearch: DOMString;
+    ANLData: TANLVideoData;
+    itemsPerPage: Integer;
+    i: Integer;
   begin
-    if sl.Count > 0 then
+    NS_media := VarToWStr(XMLNode.Attributes['xmlns:media']);
+    NS_gd := VarToWStr(XMLNode.Attributes['xmlns:gd']);
+    NS_yt := VarToWStr(XMLNode.Attributes['xmlns:yt']);
+    NS_openSearch := VarToWStr(XMLNode.Attributes['xmlns:openSearch']);
+
+    Node := XMLNode.ChildNodes.FindNode('itemsPerPage', NS_openSearch);
+    if Assigned(Node) then
+      itemsPerPage := VarToInt(Node.NodeValue)
+    else
+      exit;
+
+    SetLength(VideoData.RelatedList, itemsPerPage);
+
+    EntryNode := XMLNode.ChildNodes.FindNode('entry');
+    i := 0;
+    while Assigned(EntryNode) and (EntryNode.NodeName = 'entry') do
     begin
-      try
-        EntryFlag := false;
-        ClearFlag;
-        for i := 0 to sl.Count -1 do
-        begin
-          if not EntryFlag then
+      ANLData := YouTubeEntryXMLAnalize(EntryNode, NS_media, NS_gd, NS_yt);
+      if Assigned(ANLData) then
+      begin
+        try
+          with VideoData.RelatedList[i] do
           begin
-            if (AnsiPos('<div class="video-entry', sl[i]) > 0) then
-            begin 
-              EntryFlag := True;
-              SetLength(VideoData.RelatedList, Length(VideoData.RelatedList) + 1);
-              ClearFlag;
-            end;
-          end else
-          begin
-            with VideoData.RelatedList[Length(VideoData.RelatedList) -1] do
-            begin
-              if not idFlag then //VideoIDを取得
-              begin
-                RegExp.Pattern := GET_VIDEO_ID;
-                if RegExp.Test(sl[i]) then
-                begin
-                  Matches := RegExp.Execute(sl[i]) as MatchCollection;
-                  tmp := Match(Matches.Item[0]).Value;
-                  if Length(tmp) > 0 then
-                  begin
-                    tmp := RegExp.Replace(tmp, '$1');
-                    video_id := tmp;
-                  end;
-                  idFlag := True;
-                end;
-              end;
-
-              if not imgFlag then //サムネイル
-              begin
-                RegExp.Pattern := GET_THUMBNAIL_URL1;
-                begin
-                  try
-                    if RegExp.Test(sl[i]) then
-                    begin
-                      Matches := RegExp.Execute(sl[i]) as MatchCollection;
-                      thumbnail_url1 := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(thumbnail_url1) > 0 then
-                      begin
-                        thumbnail_url1 := RegExp.Replace(thumbnail_url1, '$1');
-                      end;
-                      //Log(thumbnail_url1);
-                    end;
-                  except
-                    thumbnail_url1 := '';
-                  end;
-                end;
-
-                if Length(thumbnail_url1) > 0 then
-                begin
-                  thumbnail_url2 := CustomStringReplace(thumbnail_url1, '/default.jpg', '/2.jpg');
-                  thumbnail_url3 := CustomStringReplace(thumbnail_url1, '/default.jpg', '/3.jpg');
-                  thumbnail_url1 := CustomStringReplace(thumbnail_url1, '/default.jpg', '/1.jpg');
-                  imgFlag := True;
-                end;
-              end;
-
-              if not titleFlag then //タイトルを取得
-              begin
-                RegExp.Pattern := GET_VIDEO_TITLE;
-                if RegExp.Test(sl[i]) then
-                begin
-                  Matches := RegExp.Execute(sl[i]) as MatchCollection;
-                  tmp := Match(Matches.Item[0]).Value;
-                  if Length(tmp) > 0 then
-                  begin
-                    tmp := RegExp.Replace(tmp, '$1');
-                    video_title := tmp;
-                  end;
-                  titleFlag := True;
-                end;
-              end;
-
-              if not timeFlag then  //再生時間を取得
-              begin
-                RegExp.Pattern := GET_PLAYTIME_SECONDS;
-                if RegExp.Test(sl[i]) then
-                begin
-                  Matches := RegExp.Execute(sl[i]) as MatchCollection;
-                  tmp := Match(Matches.Item[0]).Value;
-                  if Length(tmp) > 0 then
-                  begin
-                    playtime := tmp;
-                  end;
-                  timeFlag := True;
-                end;
-              end;
-
-              if not fromFlag then  //投稿者を取得
-              begin
-                RegExp.Pattern := GET_AUTHOR;
-                if RegExp.Test(sl[i]) then
-                begin
-                  Matches := RegExp.Execute(sl[i]) as MatchCollection;
-                  tmp := Match(Matches.Item[0]).Value;
-                  if Length(tmp) > 0 then
-                  begin
-                    tmp := RegExp.Replace(tmp, '$1');
-                    author := tmp;
-                    if Length(author) > 0 then
-                      author_link := '<a href="' + YOUTUBE_USER_PROFILE_URI + author +'">' + author + '</a>';
-                  end;
-                  fromFlag := True;
-                end;
-              end;
-
-              if not viewsFlag then  //閲覧回数を取得
-              begin
-                RegExp.Pattern := GET_VIEW_COUNT;
-                if RegExp.Test(sl[i]) then
-                begin
-                  Matches := RegExp.Execute(sl[i]) as MatchCollection;
-                  tmp := Match(Matches.Item[0]).Value;
-                  if Length(tmp) > 0 then
-                  begin
-                    tmp := RegExp.Replace(tmp, '$1');
-                    view_count := tmp;
-                  end;
-                  viewsFlag := True;
-                end;
-              end;
-
-              if not(imgFlag and idFlag and titleFlag and timeFlag and fromFlag and viewsFlag) then
-              begin
-                if (AnsiPos('<div class="video-entry">', sl[i]) > 0) then
-                begin
-                  EntryFlag := True;
-                  SetLength(VideoData.RelatedList, Length(VideoData.RelatedList) + 1);
-                  ClearFlag;
-                end;
-              end else
-              begin
-                EntryFlag := false;
-                ClearFlag;
-              end;
-            end;
+            thumbnail_url1 := ANLData.thumbnail_url;
+            thumbnail_url2 := ANLData.thumbnail_url2;
+            thumbnail_url3 := ANLData.thumbnail_url1;
+            video_id := ANLData.video_id;
+            video_title := ANLData.video_title;
+            playtime := ANLData.playtime;
+            author := ANLData.author;
+            author_link := ANLData.author_link;
+            view_count := ANLData.view_count;
           end;
+          Inc(i);
+        finally
+          ANLData.Free;
         end;
-      except
       end;
+      EntryNode := XMLNode.ChildNodes.FindSibling(EntryNode, 1);
     end;
-  end;
 
+    if i < itemsPerPage - 1 then
+      SetLength(VideoData.RelatedList, i + 1);
+  end;
 var
   innerHTML: String;
   Content: String;
   i: integer;
-  ContentList: TStringList;
 begin
-  if procGet = sender then
-  begin
-    Log('【YouTube(OnDoneYouTubeRelated)】' + sender.IdHTTP.ResponseText);
-    case sender.IdHTTP.ResponseCode of
-    200: (* OK *)
-      begin
-        Log('データ分析開始');
-
-        ContentList := TStringList.Create;
-        try
-          ContentList.Text := procGet.Content;
-          for i := 0 to ContentList.Count -1 do
-          begin
-            ContentList[i] := UTF8toAnsi(ContentList[i]);
-          end;
-          SetVideoData(ContentList);
-        finally
-          ContentList.Free;
-        end;
-
-        innerHTML := R_HeaderHTML;
-        for i := 0 to Length(VideoData.RelatedList) -1 do
+  try
+    if procGet = sender then
+    begin
+      Log('【YouTube(OnDoneYouTubeRelated)】' + sender.IdHTTP.ResponseText);
+      case sender.IdHTTP.ResponseCode of
+      200: (* OK *)
         begin
-          Content := R_ContentHTML;
-          with VideoData.RelatedList[i] do
+          Log('データ分析開始');
+
+          XMLDocument.XML.Text := procGet.Content;
+
+          if XMLDocument.XML.Count <= 0 then
           begin
-            if video_id = VideoData.video_id then
-              Continue;
-            Content := CustomStringReplace(Content, '$THUMBNAIL_URL1', thumbnail_url1);
-            Content := CustomStringReplace(Content, '$THUMBNAIL_URL2', thumbnail_url2);
-            Content := CustomStringReplace(Content, '$THUMBNAIL_URL3', thumbnail_url3);
-            Content := CustomStringReplace(Content, '$VIDEOID', video_id);
-            Content := CustomStringReplace(Content, '$VIDEOTITLE', video_title);
-            Content := CustomStringReplace(Content, '$PLAYTIME', playtime);
-            Content := CustomStringReplace(Content, '$AUTHOR_LINK', author_link);
-            Content := CustomStringReplace(Content, '$AUTHOR', author);
-            Content := CustomStringReplace(Content, '$VIEW_COUNT', view_count);
+            Log('有効なデータを取得できませんでした。');
+            Log('データ分析完了');
+            exit;
           end;
-          innerHTML := innerHTML + Content;
+
+          try
+            XMLDocument.Active := True;
+          except
+            on E: Exception do
+            begin
+              Log(e.Message);
+              Log('XMLの解析に失敗しました。');
+              SpTBXDockablePanelVideoRelated.Caption := '関連ビデオ' + ' <取得失敗>';
+              XMLDocument.Active := false;
+              XMLDocument.XML.Clear;
+              exit;
+            end;
+          end;
+          Build(XMLDocument.DocumentElement);
+          XMLDocument.Active := false;
+          XMLDocument.XML.Clear;
+
+          innerHTML := R_HeaderHTML;
+          for i := 0 to Length(VideoData.RelatedList) -1 do
+          begin
+            Content := R_ContentHTML;
+            with VideoData.RelatedList[i] do
+            begin
+              if video_id = VideoData.video_id then
+                Continue;
+              Content := CustomStringReplace(Content, '$THUMBNAIL_URL1', thumbnail_url1);
+              Content := CustomStringReplace(Content, '$THUMBNAIL_URL2', thumbnail_url2);
+              Content := CustomStringReplace(Content, '$THUMBNAIL_URL3', thumbnail_url3);
+              Content := CustomStringReplace(Content, '$VIDEOID', video_id);
+              Content := CustomStringReplace(Content, '$VIDEOTITLE', video_title);
+              Content := CustomStringReplace(Content, '$PLAYTIME', playtime);
+              Content := CustomStringReplace(Content, '$AUTHOR_LINK', author_link);
+              Content := CustomStringReplace(Content, '$AUTHOR', author);
+              Content := CustomStringReplace(Content, '$VIEW_COUNT', view_count);
+            end;
+            innerHTML := innerHTML + Content;
+          end;
+
+          innerHTML := innerHTML + R_FooterHTML;
+          innerHTML := CustomStringReplace(innerHTML, '$SKINPATH', Config.optSkinPath);
+
+          WebBrowser3.LoadFromString(innerHTML);
+
+          SpTBXDockablePanelVideoRelated.Caption := '関連ビデオ';
+          Log('データ分析完了');
         end;
-
-        innerHTML := innerHTML + R_FooterHTML;
-        innerHTML := CustomStringReplace(innerHTML, '$SKINPATH', Config.optSkinPath);
-
-        WebBrowser3.LoadFromString(innerHTML);
-
-        SpTBXDockablePanelVideoRelated.Caption := '関連ビデオ';
-        Log('データ分析完了');
-      end;
-    else
-      begin
-        SpTBXDockablePanelVideoRelated.Caption := '関連ビデオ' + ' <取得失敗>';
-        Log('関連ビデオの取得に失敗しました。');
+      else
+        begin
+          SpTBXDockablePanelVideoRelated.Caption := '関連ビデオ' + ' <取得失敗>';
+          Log('関連ビデオの取得に失敗しました。');
+        end;
       end;
     end;
+  finally
+    procGet := nil;
   end;
-  procGet := nil;
 end;
-}
+
 
 //UnixTimeをStringに変換する
 function TMainWnd.UnixTime2String(const str: string): String;
@@ -8550,7 +8421,7 @@ begin
   case Config.optSearchTarget of
     0:  LabelWord := 'YouTube(標準検索) ';
     1:  LabelWord := 'YouTube(関連検索) ';
-    100: LabelWord := 'YouTube(サイト内検索) ';
+    100: LabelWord := 'YouTube(カスタム検索) ';
     2:  LabelWord := 'ニコニコ動画(投稿日時が新しい順) ';
     3:  LabelWord := 'ニコニコ動画(投稿日時が古い順) ';
     4:  LabelWord := 'ニコニコ動画(再生が多い順) ';
@@ -8568,7 +8439,7 @@ begin
     24: LabelWord := 'ニコニコ動画(タグ検索-コメントが新しい順) ';
     25: LabelWord := 'ニコニコ動画(タグ検索-コメントが古い順) ';
     26: LabelWord := 'ニコニコ動画(タグ検索-コメントが多い順) ';
-    27: LabelWord := 'ニコニコ動画(タグ検索-コメントが少ない順) '; 
+    27: LabelWord := 'ニコニコ動画(タグ検索-コメントが少ない順) ';
     28: LabelWord := 'ニコニコ動画(タグ検索-マイリスト登録数が多い順) ';
     29: LabelWord := 'ニコニコ動画(タグ検索-マイリスト登録数が少ない順) ';
   end;
@@ -8583,17 +8454,17 @@ begin
       1:
       begin
         LabelWord := LabelWord + '[追加日]';
-        search_sort := 'video_date_uploaded';
+        search_sort := 'published';
       end;
       2:
       begin
         LabelWord := LabelWord + '[再生回数]';
-        search_sort := 'video_view_count';
+        search_sort := 'viewCount';
       end;
       3:
       begin
         LabelWord := LabelWord + '[評価]';
-        search_sort := 'video_avg_rating';
+        search_sort := 'rating';
       end;
     end;
     case Config.optSearchYouTubeCategory of
@@ -8611,7 +8482,9 @@ begin
       17: LabelWord := LabelWord + '[スポーツ] ';
       19: LabelWord := LabelWord + '[旅行と訪問スポット] ';
     end;
-  end;
+  end
+  else if Config.optSearchTarget in [0, 1] then
+    search_sort := 'relevance';
 
   ActionSearchBarSearch.Enabled := false;
   ActionSearchBarSearch2.Enabled := false;
@@ -8642,46 +8515,54 @@ begin
   ClearSearchList;
   SearchPage := 1;
   tmpSearchWord := SearchWord;
+  tmpLabelWord := LabelWord;
   if not ActionToggleSearchPanel.Checked then
     ActionToggleSearchPanel.Execute;
 
   tmpSearchURI := '';
   case Config.optSearchTarget of
-    0,1: //YouTube(API)
+    0,1,100: //YouTube(API)
       begin
         SearchType := 0;
-        Log('検索開始 [' + SearchWord + ']   [1-' + IntToStr(SearchPage*100) + ']');
-        SpTBXDockablePanelSearch.Caption := LabelWord + '[' + SearchWord + ']   [1-' + IntToStr(SearchPage*100) + ']   <取得中>';
+        Log('検索開始 [%s]   [1-50]', [SearchWord]);
+        SpTBXDockablePanelSearch.Caption := LabelWord + Format('[%s]   [1-50]   <取得中>', [SearchWord]);
+
+        if Config.optSearchTarget = 100 then
+        begin
+          case Config.optSearchYouTubeCategory of
+            2:  URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Autos';
+            23: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Comedy';
+            24: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Entertainment';
+            1:  URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Film';
+            20: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Games';
+            26: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Howto';
+            10: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Music';
+            25: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/News';
+            22: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/People';
+            15: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Animals';
+            17: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Sports';
+            19: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Travel';
+            else URI := YOUTUBE_GET_SEARCH_URI_FRONT;
+          end;
+        end
+        else
+          URI := YOUTUBE_GET_SEARCH_URI_FRONT;
+
         if AnsiStartsText('user:', SearchWord) then
         begin
           SearchWord := Copy(SearchWord, 6, high(integer));
           SearchWord := URLEncode(UTF8Encode(SearchWord));
-          URI := YOUTUBE_GET_USER_URI_FRONT + YOUTUBE_DEV_ID + '&user=' + SearchWord + '&page=' + IntToStr(SearchPage) + '&per_page=100';
+          URI := URI + Format('?racy=include&author=%s&orderby=%s&start-index=1&max-results=50',
+                              [SearchWord, search_sort]);
         end else
         begin
           SearchWord := URLEncode(UTF8Encode(SearchWord));
-          if Config.optSearchTarget = 0 then  //YouTube(標準)
-            URI := YOUTUBE_GET_SEARCH_URI_FRONT + YOUTUBE_DEV_ID + '&tag=' + SearchWord + '&page=' + IntToStr(SearchPage) + '&per_page=100'
-          else if Config.optSearchTarget = 1 then //YouTube(関連検索)
-            URI := YOUTUBE_GET_RELATED_URI_FRONT + YOUTUBE_DEV_ID + '&tag=' + SearchWord + '&page=' + IntToStr(SearchPage) + '&per_page=100';
+          URI := URI + Format('?racy=include&vq=%s&orderby=%s&start-index=1&max-results=50',
+                              [SearchWord, search_sort]);
         end;
+
         Log('');
         procGet3 := AsyncManager.Get(URI, OnYouTubeSearch);
-      end;
-    100: //YouTube(サイト内検索)
-      begin
-        SearchType := 0;
-        Log('検索開始 [' + SearchWord + ']   [1-' + IntToStr(SearchPage*20) + ']');
-        SpTBXDockablePanelSearch.Caption := LabelWord + '[' + SearchWord + ']   [1-' + IntToStr(SearchPage*20) + ']   <取得中>';
-        SearchWord := URLEncode(UTF8Encode(SearchWord));
-        case Config.optSearchYouTubeSort of
-          0: URI := YOUTUBE_GET_SEARCH_URI + SearchWord + '&search_sort=' + search_sort + '&search_category=' + IntToStr(Config.optSearchYouTubeCategory);
-          1: URI := YOUTUBE_GET_SEARCH_URI + SearchWord + '&search_sort=' + search_sort + '&search_category=' + IntToStr(Config.optSearchYouTubeCategory);
-          2: URI := YOUTUBE_GET_SEARCH_URI + SearchWord + '&search_sort=' + search_sort + '&search_category=' + IntToStr(Config.optSearchYouTubeCategory);
-          3: URI := YOUTUBE_GET_SEARCH_URI + SearchWord + '&search_sort=' + search_sort + '&search_category=' + IntToStr(Config.optSearchYouTubeCategory);
-        end;
-        Log('');
-        procGet3 := AsyncManager.Get(URI, OnYouTubeGetSearchResults);
       end;
     2..11,20..29: //ニコニコ動画
       begin
@@ -8725,6 +8606,8 @@ var
   LabelWord: String;
   SearchWord: String;
   URI: String;
+  StartIdx: Integer;
+  search_sort: String;
 begin
   if Length(tmpSearchWord) <= 0 then
     exit;
@@ -8749,7 +8632,7 @@ begin
   case Config.optSearchTarget of
     0:  LabelWord := 'YouTube(標準検索) ';
     1:  LabelWord := 'YouTube(関連検索) ';
-    100: LabelWord := 'YouTube(サイト内検索) ';
+    100: LabelWord := 'YouTube(カスタム検索) ';
     2:  LabelWord := 'ニコニコ動画(投稿日時が新しい順) ';
     3:  LabelWord := 'ニコニコ動画(投稿日時が古い順) ';
     4:  LabelWord := 'ニコニコ動画(再生が多い順) ';
@@ -8773,12 +8656,27 @@ begin
   end;
   if Config.optSearchTarget = 100 then
   begin
-    LabelWord := 'YouTube(サイト内検索) ';
     case Config.optSearchYouTubeSort of
-      0: LabelWord := LabelWord + '[関連度]';
-      1: LabelWord := LabelWord + '[追加日]';
-      2: LabelWord := LabelWord + '[再生回数]';
-      3: LabelWord := LabelWord + '[評価]';
+      0:
+      begin
+        LabelWord := LabelWord + '[関連度]';
+        search_sort := 'relevance';
+      end;
+      1:
+      begin
+        LabelWord := LabelWord + '[追加日]';
+        search_sort := 'published';
+      end;
+      2:
+      begin
+        LabelWord := LabelWord + '[再生回数]';
+        search_sort := 'viewCount';
+      end;
+      3:
+      begin
+        LabelWord := LabelWord + '[評価]';
+        search_sort := 'rating';
+      end;
     end;
     case Config.optSearchYouTubeCategory of
       0:  LabelWord := LabelWord + '[すべて] ';
@@ -8795,7 +8693,11 @@ begin
       17: LabelWord := LabelWord + '[スポーツ] ';
       19: LabelWord := LabelWord + '[旅行と訪問スポット] ';
     end;
-  end;
+  end
+  else if Config.optSearchTarget in [0, 1] then
+    search_sort := 'relevance';
+  tmpLabelWord := LabelWord;
+
   case SearchType of
     2: //ニコニコ動画(ランキング)
       begin
@@ -8817,49 +8719,52 @@ begin
         procGet3 := AsyncManager.Get(URI, OnNicoVideoSearch, OnNicoVideoPreConnect);
         exit;
       end;
-    20: //YouTube(Videos)
-      begin
-        Log(SearchWord + '   [1-' + IntToStr(SearchPage*20) + '] 取得開始');
-        SpTBXDockablePanelSearch.Caption := SearchWord +  '   [1-' + IntToStr(SearchPage*20) + ']   <取得中>';
-        URI := tmpSearchURI + '&p=' + IntToStr(SearchPage);
-        Log('');
-        procGet3 := AsyncManager.Get(URI, OnYouTubeGetVideos);
-        exit;
-      end;
   end;
 
   case Config.optSearchTarget of
-    0,1: //YouTube
+    0,1,100: //YouTube
       begin
         SearchType := 0;
+        StartIdx := ((SearchPage-1)*50) + 1;
         Log('');
-        Log('検索開始 [' + SearchWord + ']   [1-' + IntToStr(SearchPage*100) + ']');
-        SpTBXDockablePanelSearch.Caption := LabelWord + '[' + SearchWord + ']   [1-' + IntToStr(SearchPage*100) + ']   <取得中>';
+        Log('検索開始 [%s]   [%d-%d]', [SearchWord, StartIdx, StartIdx + 50 - 1]);
+        SpTBXDockablePanelSearch.Caption := LabelWord + Format('[%s]   [%d-%d]   <取得中>', [SearchWord, StartIdx, StartIdx + 49]);
+
+        if Config.optSearchTarget = 100 then
+        begin
+          case Config.optSearchYouTubeCategory of
+            2:  URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Autos';
+            23: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Comedy';
+            24: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Entertainment';
+            1:  URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Film';
+            20: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Games';
+            26: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Howto';
+            10: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Music';
+            25: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/News';
+            22: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/People';
+            15: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Animals';
+            17: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Sports';
+            19: URI := YOUTUBE_GET_SEARCH_URI_FRONT + '/-/Travel';
+            else URI := YOUTUBE_GET_SEARCH_URI_FRONT;
+          end;
+        end
+        else
+          URI := YOUTUBE_GET_SEARCH_URI_FRONT;
+
         if AnsiStartsText('user:', SearchWord) then
         begin
           SearchWord := Copy(SearchWord, 6, high(integer));
           SearchWord := URLEncode(UTF8Encode(SearchWord));
-          URI := YOUTUBE_GET_USER_URI_FRONT + YOUTUBE_DEV_ID + '&user=' + SearchWord + '&page=' + IntToStr(SearchPage) + '&per_page=100';
+          URI := URI + Format('?racy=include&author=%s&orderby=%s&start-index=%d&max-results=50',
+                              [SearchWord, search_sort, StartIdx]);
         end else
         begin
           SearchWord := URLEncode(UTF8Encode(SearchWord));
-          if Config.optSearchTarget = 0 then  //YouTube(標準)
-            URI := YOUTUBE_GET_SEARCH_URI_FRONT + YOUTUBE_DEV_ID + '&tag=' + SearchWord + '&page=' + IntToStr(SearchPage) + '&per_page=100'
-          else if Config.optSearchTarget = 1 then //YouTube(関連検索)
-            URI := YOUTUBE_GET_RELATED_URI_FRONT + YOUTUBE_DEV_ID + '&tag=' + SearchWord + '&page=' + IntToStr(SearchPage) + '&per_page=100';
+          URI := URI + Format('?racy=include&vq=%s&orderby=%s&start-index=%d&max-results=50',
+                              [SearchWord, search_sort, StartIdx]);
         end;
         procGet3 := AsyncManager.Get(URI, OnYouTubeSearch);
         tmpSearchURI := URI;
-      end;
-    100: //YouTube(サイト内検索)
-      begin
-        SearchType := 0;
-        Log('検索開始 [' + SearchWord + ']   [1-' + IntToStr(SearchPage*20) + ']');
-        SpTBXDockablePanelSearch.Caption := LabelWord + '[' + SearchWord + ']   [1-' + IntToStr(SearchPage*20) + ']   <取得中>';
-        SearchWord := URLEncode(UTF8Encode(SearchWord));
-        URI := tmpSearchURI + '&p=' + IntToStr(SearchPage);
-        Log('');
-        procGet3 := AsyncManager.Get(URI, OnYouTubeGetSearchResults);
       end;
     2..11,20..29: //ニコニコ動画
       begin
@@ -9317,159 +9222,80 @@ procedure TMainWnd.OnYouTubeSearch(sender: TAsyncReq);
 
   procedure Build(XMLNode: IXMLNode);
   var
-    i: integer;
-    NewXMLNode: IXMLNode;
-    second: integer;
-    rate: integer;
+    EntryNode: IXMLNode;
+    Node: IXMLNode;
+    NS_media, NS_gd, NS_yt, NS_openSearch: DOMString;
+    SearchData: TSearchData;
+    ANLData: TANLVideoData;
   begin
-    if (XMLNode.NodeType = ntElement) then
+    NS_media := VarToWStr(XMLNode.Attributes['xmlns:media']);
+    NS_gd := VarToWStr(XMLNode.Attributes['xmlns:gd']);
+    NS_yt := VarToWStr(XMLNode.Attributes['xmlns:yt']);
+    NS_openSearch := VarToWStr(XMLNode.Attributes['xmlns:openSearch']);
+
+    EntryNode := XMLNode.ChildNodes.FindNode('entry');
+    while Assigned(EntryNode) and (EntryNode.NodeName = 'entry') do
     begin
-      if (XMLNode.NodeName = 'video_list') then
+      ANLData := YouTubeEntryXMLAnalize(EntryNode, NS_media, NS_gd, NS_yt);
+      if Assigned(ANLData) then
       begin
-        for i :=  0 to XMLNode.ChildNodes.Count - 1 do
-        begin
-          NewXMLNode := XMLNode.ChildNodes.Nodes[i];
-          if (NewXMLNode.NodeName = 'video') then
+        try
+          SearchData := TSearchData.Create;
+          with SearchData do
           begin
-            SearchList.Add(TSearchData.Create);
-            with TSearchData(SearchList.Last) do
-            begin
-              video_type := 0;
-              liststate := 0;
-              try
-                author := NewXMLNode.ChildValues['author'];
-              except
-                author := '';
-              end;
-              if Length(author) > 0 then
-                author_link := '<a href="' + YOUTUBE_USER_PROFILE_URI + author +'">' + author + '</a>';
-              try
-                video_id := NewXMLNode.ChildValues['id'];
-              except
-                video_id := '';
-              end;
-              try
-                video_title := NewXMLNode.ChildValues['title'];
-              except
-                video_title := '';
-              end;
-              try
-                playtime_seconds := NewXMLNode.ChildValues['length_seconds'];
-              except
-                playtime_seconds := '';
-              end;
-              if Length(playtime_seconds) > 0 then
-              begin
-                second := StrToIntDef(playtime_seconds, 0);
-                try
-                  playtime := FormatFloat('0#', (second div 60)) + ':' + FormatFloat('0#', (second mod 60));
-                except
-                  playtime := playtime_seconds + 'sec';
-                end;
-              end;
-              try
-                rating_avg := NewXMLNode.ChildValues['rating_avg'];
-              except
-                rating_avg := '';
-              end;
-              if Length(rating_avg) > 0 then
-              begin
-                rate := Round(StrToFloatDef(rating_avg, 0));
-                case rate of
-                  0:   rating := '☆☆☆☆☆';
-                  1:   rating := '★☆☆☆☆';
-                  2:   rating := '★★☆☆☆';
-                  3:   rating := '★★★☆☆';
-                  4:   rating := '★★★★☆';
-                  else rating := '★★★★★';
-                end;
-              end;
-              try
-                rationg_count := NewXMLNode.ChildValues['rating_count'];
-              except
-                rationg_count := '';
-              end;
-              try
-                description := NewXMLNode.ChildValues['description'];
-              except
-                description := '';
-              end;
-              try
-                view_count := NewXMLNode.ChildValues['view_count'];
-              except
-                view_count := '';
-              end;
-              try
-                upload_unixtime := NewXMLNode.ChildValues['upload_time'];
-              except
-                upload_unixtime := '';
-              end;
-              if Length(upload_unixtime) > 0 then
-                upload_time := UnixTime2String(upload_unixtime);
-              try
-                comment_count := NewXMLNode.ChildValues['comment_count'];
-              except
-                comment_count := '';
-              end;
-              try
-                tags := NewXMLNode.ChildValues['tags'];
-              except
-                tags := '';
-              end;
-              try
-                thumbnail_url1 := NewXMLNode.ChildValues['thumbnail_url'];
-              except
-                thumbnail_url1 := '';
-              end;
-              if Length(thumbnail_url1) > 0 then
-              begin
-                thumbnail_url2 := CustomStringReplace(thumbnail_url1, '/default.jpg', '/2.jpg');
-                thumbnail_url3 := CustomStringReplace(thumbnail_url1, '/default.jpg', '/3.jpg'); 
-                thumbnail_url1 := CustomStringReplace(thumbnail_url1, '/default.jpg', '/1.jpg');
-              end;
-            end;
+            video_type := ANLData.video_type;
+            liststate := 0;
+            video_id := ANLData.video_id;
+            author := ANLData.author;
+            author_link := ANLData.author_link;
+            description := ANLData.description;
+            video_title := ANLData.video_title;
+            thumbnail_url1 := ANLData.thumbnail_url;
+            thumbnail_url2 := ANLData.thumbnail_url2;
+            thumbnail_url3 := ANLData.thumbnail_url1;
+            playtime_seconds := ANLData.playtime_seconds;
+            playtime := ANLData.playtime;
+            tags := ANLData.keywords;
+            rating_avg := ANLData.rating_avg;
+            rating := ANLData.rating;
+            rationg_count := ANLData.rationg_count;
+            view_count := ANLData.view_count;
+            upload_unixtime := ANLData.upload_unixtime;
+            upload_time := ANLData.upload_time;
+            comment_count := ANLData.comment_count;
           end;
-        end;
-      end else
-      begin
-        for i :=  0 to XMLNode.ChildNodes.Count - 1 do
-        begin
-          Build(XMLNode.ChildNodes.Nodes[i]);
+          SearchList.Add(SearchData);
+        finally
+          ANLData.Free;
         end;
       end;
+      EntryNode := XMLNode.ChildNodes.FindSibling(EntryNode, 1);
     end;
+
+    Node := XMLNode.ChildNodes.FindNode('totalResults', NS_openSearch);
+    if Assigned(Node) then
+      totalResults := VarToInt(Node.NodeValue);
   end;
 
-var
-  i: integer;
-  ContentList: TStringList;
-  LabelWord: String;
+//var
+//  LabelWord: String;
 begin
   if procGet3 = sender then
   begin
+  {
     case Config.optSearchTarget of
       0: LabelWord := 'YouTube(標準検索) ';
       1: LabelWord := 'YouTube(関連検索) ';
+      100: LabelWord := 'YouTube(カスタム検索) ';
     end;
+    }
 
     Log('【YouTube(OnYouTubeSearch)】' + sender.IdHTTP.ResponseText);
     case sender.IdHTTP.ResponseCode of
     200: (* OK *)
       begin
         Log('データ分析開始');
-
-        ContentList := TStringList.Create;
-        try
-          ContentList.Text := procGet3.Content;
-          for i := 0 to ContentList.Count -1 do
-          begin
-            //log(ContentList[i]);
-            XMLDocument2.XML.Add(ContentList[i]);
-          end;
-        finally
-          ContentList.Free;
-        end;
-
+        XMLDocument2.XML.Text := procGet3.Content;
         try
           XMLDocument2.Active := True;
         except
@@ -9478,7 +9304,7 @@ begin
             //MessageDlg(e.Message  + #13#10 + 'XMLの解析に失敗しました。', mtError, [mbOK], -1);
             Log(e.Message);
             Log('XMLの解析に失敗しました。');
-            SpTBXDockablePanelSearch.Caption := LabelWord + '[' + tmpSearchWord + ']   <解析失敗>';
+            SpTBXDockablePanelSearch.Caption := tmpLabelWord + '[' + tmpSearchWord + ']   <解析失敗>';
             XMLDocument2.Active := false;
             XMLDocument2.XML.Clear;
             procGet3 := nil;
@@ -9500,17 +9326,18 @@ begin
         if SearchList.Count > 0 then
         begin
           case SearchType of
-            0:  SpTBXDockablePanelSearch.Caption := LabelWord + '[' + tmpSearchWord + ']   [1-' + IntToStr(SearchList.Count) + ']';
+            0:  SpTBXDockablePanelSearch.Caption := tmpLabelWord + '[' + tmpSearchWord + ']   [1-' + IntToStr(SearchList.Count) + ']';
             10: SpTBXDockablePanelSearch.Caption := tmpSearchWord + '   [1-' + IntToStr(SearchList.Count) + ']';
+            20: SpTBXDockablePanelSearch.Caption := tmpSearchWord;
           end;
           ActionSearchBarToggleListView.Enabled := true;
         end else
-          SpTBXDockablePanelSearch.Caption := LabelWord + '[' + tmpSearchWord + ']   <該当データなし>';
+          SpTBXDockablePanelSearch.Caption := tmpLabelWord + '[' + tmpSearchWord + ']   <該当データなし>';
         Log('検索完了');
       end;
     else
       begin
-        SpTBXDockablePanelSearch.Caption := LabelWord + '[' + tmpSearchWord + ']   <取得失敗>';
+        SpTBXDockablePanelSearch.Caption := tmpLabelWord + '[' + tmpSearchWord + ']   <取得失敗>';
         Log('検索に失敗しました。');
       end;
     end;
@@ -9520,7 +9347,7 @@ begin
     case SearchType of
       0:
       begin
-        if SearchList.Count >= SearchPage * 100 then
+        if SearchList.Count >= SearchPage * 50 then
           ActionSearchBarAdd100.Enabled := true
         else
           ActionSearchBarAdd100.Enabled := false;
@@ -10943,13 +10770,14 @@ begin
   if not ActionToggleSearchPanel.Checked then
     ActionToggleSearchPanel.Execute;
   case TSpTBXItem(Sender).Tag of
-    10:  URI := YOUTUBE_GET_FEATURED_URI + YOUTUBE_DEV_ID;
-    20:  URI := YOUTUBE_GET_POPULAR_URI_FRONT + YOUTUBE_DEV_ID + YOUTUBE_GET_POPULAR_URI_BACK + 'day';
-    21:  URI := YOUTUBE_GET_POPULAR_URI_FRONT + YOUTUBE_DEV_ID + YOUTUBE_GET_POPULAR_URI_BACK + 'week';
-    22:  URI := YOUTUBE_GET_POPULAR_URI_FRONT + YOUTUBE_DEV_ID + YOUTUBE_GET_POPULAR_URI_BACK + 'month';
-    23:  URI := YOUTUBE_GET_POPULAR_URI_FRONT + YOUTUBE_DEV_ID + YOUTUBE_GET_POPULAR_URI_BACK + 'all';
+    10:  URI := YOUTUBE_GET_FEATURED_ALL_URI + '?';
+    20:  URI := YOUTUBE_GET_POPULAR_ALL_URI_FRONT + '?time=today';
+    21:  URI := YOUTUBE_GET_POPULAR_ALL_URI_FRONT + '?time=this_week';
+    22:  URI := YOUTUBE_GET_POPULAR_ALL_URI_FRONT + '?time=this_month';
+    23:  URI := YOUTUBE_GET_POPULAR_ALL_URI_FRONT + '?time=all_time';
     else exit;
   end;
+  URI := URI + '&start-index=1&max-results=50';
   case TSpTBXItem(Sender).Tag of
     10:  LabelWord := 'YouTube - 注目の動画';
     20:  LabelWord := 'YouTube - 人気の動画(本日分)';
@@ -10995,40 +10823,50 @@ begin
 
   ClearSearchList;
   SearchPage := 1;
-  Config.optSearchVideosYouTubeCategory := 0; //070620現在カテゴリ設定は無効
+
   if not ActionToggleSearchPanel.Checked then
     ActionToggleSearchPanel.Execute;
 
   case TSpTBXItem(Sender).Tag of
-    100: URI := 'http://www.youtube.com/browse?s=mr&t=t&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    110: URI := 'http://www.youtube.com/browse?s=mp&t=t&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    111: URI := 'http://www.youtube.com/browse?s=mp&t=w&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    112: URI := 'http://www.youtube.com/browse?s=mp&t=m&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    113: URI := 'http://www.youtube.com/browse?s=mp&t=a&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    120: URI := 'http://www.youtube.com/browse?s=tr&t=t&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    121: URI := 'http://www.youtube.com/browse?s=tr&t=w&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    122: URI := 'http://www.youtube.com/browse?s=tr&t=m&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    123: URI := 'http://www.youtube.com/browse?s=tr&t=a&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    130: URI := 'http://www.youtube.com/browse?s=md&t=t&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    131: URI := 'http://www.youtube.com/browse?s=md&t=w&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    132: URI := 'http://www.youtube.com/browse?s=md&t=m&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    133: URI := 'http://www.youtube.com/browse?s=md&t=a&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    140: URI := 'http://www.youtube.com/browse?s=mf&t=t&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    141: URI := 'http://www.youtube.com/browse?s=mf&t=w&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    142: URI := 'http://www.youtube.com/browse?s=mf&t=m&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    143: URI := 'http://www.youtube.com/browse?s=mf&t=a&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    150: URI := 'http://www.youtube.com/browse?s=mrd&t=t&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    151: URI := 'http://www.youtube.com/browse?s=mrd&t=w&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    152: URI := 'http://www.youtube.com/browse?s=mrd&t=m&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    153: URI := 'http://www.youtube.com/browse?s=mrd&t=a&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    160: URI := 'http://www.youtube.com/browse?s=ms&t=t&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    161: URI := 'http://www.youtube.com/browse?s=ms&t=w&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    162: URI := 'http://www.youtube.com/browse?s=ms&t=m&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
-    163: URI := 'http://www.youtube.com/browse?s=ms&t=a&c=' + IntToStr(Config.optSearchVideosYouTubeCategory) + '&l='; //JP';
+    100: URI := YOUTUBE_GET_RECENT_URI;
+    110..113: URI := YOUTUBE_GET_POPULAR_URI_FRONT;
+    120..123: URI := YOUTUBE_GET_RATED_URI_FRONT;
+    130..133: URI := YOUTUBE_GET_DISCUSSED_URI_FRONT;
+    140..143: URI := YOUTUBE_GET_FAVORITES_URI_FRONT;
+    150..153: URI := YOUTUBE_GET_LINKED_URI_FRONT;
+    160..163: URI := YOUTUBE_GET_RESPONDED_URI_FRONT;
     else exit;
   end;
 
-  (* 070620現在カテゴリ設定は無効
+  case Config.optSearchVideosYouTubeCategory of
+    2:  URI := URI + '/-/Autos';
+    23: URI := URI + '/-/Comedy';
+    24: URI := URI + '/-/Entertainment';
+    1:  URI := URI + '/-/Film';
+    20: URI := URI + '/-/Games';
+    26: URI := URI + '/-/Howto';
+    10: URI := URI + '/-/Music';
+    25: URI := URI + '/-/News';
+    22: URI := URI + '/-/People';
+    15: URI := URI + '/-/Animals';
+    17: URI := URI + '/-/Sports';
+    19: URI := URI + '/-/Travel';
+  end;
+
+  if TSpTBXItem(Sender).Tag <> 100 then
+  begin
+    case (TSpTBXItem(Sender).Tag mod 10) of
+      0: URI := URI + '?time=today&';
+      1: URI := URI + '?time=this_week&';
+      2: URI := URI + '?time=this_month&';
+      3: URI := URI + '?time=all_time&';
+    end;
+  end
+  else
+    URI := URI + '?';
+
+  URI := URI + 'start-index=1&max-results=50';
+
   case Config.optSearchVideosYouTubeCategory of
     0:  Category := '[すべて]';
     2:  Category := '[自動車と乗り物]';
@@ -11044,7 +10882,6 @@ begin
     17: Category := '[スポーツ]';
     19: Category := '[旅行と訪問スポット]';
   end;
-  *)
 
   case TSpTBXItem(Sender).Tag of
     100:  LabelWord := 'YouTube - 新着動画(日本)' + Category;
@@ -11079,7 +10916,7 @@ begin
   Log(LabelWord + '取得開始');
   SpTBXDockablePanelSearch.Caption := tmpSearchWord + '   <取得中>';
   Log('');
-  procGet3 := AsyncManager.Get(URI, OnYouTubeGetVideos);
+  procGet3 := AsyncManager.Get(URI, OnYouTubeSearch);
   tmpSearchURI := URI;
 end;
 
@@ -11550,443 +11387,6 @@ begin
           ActionSearchBarToggleListView.Enabled := true;
         end else
           SpTBXDockablePanelSearch.Caption := LabelWord + '[' + tmpSearchWord + ']   <該当データなし>';
-        Log('取得完了');
-
-      end;
-    else
-      begin
-        SpTBXDockablePanelSearch.Caption := tmpSearchWord + '   <取得失敗>';
-        Log('データの取得に失敗しました。');
-      end;
-    end;
-    procGet3 := nil;
-    ActionSearchBarSearch.Enabled := True;
-    ActionSearchBarSearch2.Enabled := True;
-    if IsNext then
-      ActionSearchBarAdd100.Enabled := true
-    else
-      ActionSearchBarAdd100.Enabled := false;
-    MenuSearchNicoVideo.Enabled := true;
-    MenuSearchYouTube.Enabled := true;
-  end;
-end;
-
-//YouTubeのデータ(ランキング)を処理する
-procedure TMainWnd.OnYouTubeGetVideos(sender: TAsyncReq);
-var
-  i: integer;
-  ContentList: TStringList;
-  SearchDataList: TStringList;
-  tmpSearchData: String;
-  DataStart: boolean;
-  Matches: MatchCollection;
-  tmp, min, sec: String;
-  IsNext: boolean;
-  s_rating: string;
-  e_rating: Extended;
-  i_rating: integer;
-const
-  GET_VIDEO_ID          = '\/watch\?v=([^"]+)"';
-  GET_VIDEO_TITLE       = 'title="([^"]+)"';
-  GET_THUMBNAIL_URL1    = 'src="([^"]+)"';
-  GET_PLAYTIME_SECONDS  = '(\d+):(\d+)';
-  GET_AUTHOR            = 'href="/user/([^"]+)"';
-  GET_VIEW_COUNT        = '再生回数 ([\d,]+)';
-  //GET_RATIONG_COUNT     = 'ratingCount">([\d,]+)[ ]?件の評価';
-  GET_RATIONG            = 'ratingVS-([^"]+)"';
-  GET_UPLOAD_TIME_MI_AGO = '>(\d+)[ ]?分前';
-  GET_UPLOAD_TIME_H_AGO  = '>(\d+)[ ]?時間前';
-  GET_UPLOAD_TIME_D_AGO  = '>(\d+)[ ]?日前';
-  GET_UPLOAD_TIME_W_AGO  = '>(\d+)[ ]?週前';
-  GET_UPLOAD_TIME_MO_AGO  = '>(\d+)[ ]?か?月前';
-  GET_UPLOAD_TIME_Y_AGO  = '>(\d+)[ ]?年前';
-  GET_UPLOAD_TIME        = '(\d{10})'; //UNIXTIME
-
-  GET_NEXT = 'class="pagerNotCurrent">次へ</a>';
-begin
-  if procGet3 = sender then
-  begin
-
-    Log('【YouTube(OnYouTubeGetVideos)】' + sender.IdHTTP.ResponseText);
-    IsNext := false;
-    case sender.IdHTTP.ResponseCode of
-    200: (* OK *)
-      begin
-        Log('データ分析開始');
-
-        ContentList := TStringList.Create;
-        SearchDataList := TStringList.Create;
-        try
-          ContentList.Text := procGet3.Content;
-          DataStart := false;
-          tmpSearchData := '';
-          IsNext := false;
-          for i := 0 to ContentList.Count -1 do
-          begin
-            ContentList[i] := UTF8toAnsi(ContentList[i]);
-            if not IsNext and (AnsiPos(GET_NEXT, ContentList[i]) > 0) then
-              IsNext := True;
-
-            if not DataStart and (AnsiPos('<div class="video-entry">', ContentList[i]) > 0) then
-            begin
-              DataStart := True;
-              tmpSearchData := ContentList[i];
-            end else if DataStart and (AnsiPos('<div class="video-entry">', ContentList[i]) > 0) then
-            begin
-              SearchDataList.Add(tmpSearchData);
-              tmpSearchData := ContentList[i];
-            end else if DataStart and (AnsiPos('<!-- end search results -->', ContentList[i]) > 0) then
-            begin
-              DataStart := false;
-              SearchDataList.Add(tmpSearchData);
-              tmpSearchData := '';
-            end else if DataStart then
-            begin
-              tmpSearchData := tmpSearchData + ContentList[i];
-            end;
-          end;
-          if SearchDataList.Count > 0 then
-          begin
-            for i := 0 to SearchDataList.Count -1 do
-            begin
-              tmpSearchData := SearchDataList.Strings[i];
-              SearchList.Add(TSearchData.Create);
-              with TSearchData(SearchList.Last) do
-              begin
-                video_type := 0;
-                RegExp.Pattern := GET_VIDEO_TITLE; //タイトル
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      video_title := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(video_title) > 0 then
-                        video_title := RegExp.Replace(video_title, '$1');
-                      video_title := CustomStringReplace(video_title,  '&quot;', '"');
-                      video_title := CustomStringReplace(video_title,  '&amp;', '&');
-                      video_title := CustomStringReplace(video_title,  '&lt; ', '<');
-                      video_title := CustomStringReplace(video_title,  '&gt;', '>');
-                      //Log(video_title);
-                    end;
-                  except
-                    video_title := '';
-                  end;
-                end;
-                RegExp.Pattern := GET_VIDEO_ID; //ビデオID
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      video_id := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(video_id) > 0 then
-                        video_id := RegExp.Replace(video_id, '$1');
-                      //Log(video_id);
-                    end;
-                  except
-                    video_id := '';
-                  end;
-                end;
-                RegExp.Pattern := GET_PLAYTIME_SECONDS; //再生時間
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      playtime := AnsiString(Match(Matches.Item[0]).Value);
-                      //Log(playtime);
-                      tmp := playtime;
-                      if Length(tmp) > 0 then
-                      begin
-                        min := RegExp.Replace(tmp, '$1');
-                        sec := RegExp.Replace(tmp, '$2');
-                        if (Length(min) > 0) and (Length(sec) > 0) then
-                        try
-                          playtime_seconds := IntToStr(StrToInt(min)*60 + StrToInt(sec));
-                        except
-                          playtime_seconds := ''
-                        end;
-                      end;
-                      //Log(playtime_seconds);
-                    end;
-                  except
-                  end;
-                end;
-                RegExp.Pattern := GET_VIEW_COUNT; //再生数
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      view_count := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(view_count) > 0 then
-                      begin
-                        view_count := RegExp.Replace(view_count, '$1');
-                        view_count := CustomStringReplace(view_count,  ',', '');
-                      end;
-                      //Log(view_count);
-                    end;
-                  except
-                    view_count := '';
-                  end;
-                end;
-                (*
-                RegExp.Pattern := GET_RATIONG_COUNT; //評価数
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      rationg_count := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(rationg_count) > 0 then
-                      begin
-                        rationg_count := RegExp.Replace(rationg_count, '$1');
-                        rationg_count := CustomStringReplace(rationg_count,  ',', '');
-                      end;
-                      //Log(rationg_count);
-                    end;
-                  except
-                    rationg_count := '';
-                  end;
-                end;
-                *)
-                RegExp.Pattern := GET_AUTHOR;  //ユーザー名
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      author := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(author) > 0 then
-                      begin
-                        author := RegExp.Replace(author, '$1');
-                      end;
-                      //Log(author);
-                    end;
-                  except
-                    author := '';
-                  end;
-                end;
-                if Length(author) > 0 then
-                  author_link := '<a href="' + YOUTUBE_USER_PROFILE_URI + author +'">' + author + '</a>';
-                RegExp.Pattern := GET_THUMBNAIL_URL1;  //サムネイル
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      thumbnail_url1 := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(thumbnail_url1) > 0 then
-                      begin
-                        thumbnail_url1 := RegExp.Replace(thumbnail_url1, '$1');
-                      end;
-                      //Log(thumbnail_url1);
-                    end;
-                  except
-                    thumbnail_url1 := '';
-                  end;
-                end;
-                if Length(thumbnail_url1) > 0 then
-                begin
-                  thumbnail_url2 := CustomStringReplace(thumbnail_url1, '/default.jpg', '/1.jpg');
-                  thumbnail_url3 := CustomStringReplace(thumbnail_url1, '/default.jpg', '/3.jpg');
-                end;
-                //レイティング
-                s_rating := '';
-                e_rating := 0;
-                RegExp.Pattern := GET_RATIONG;
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      s_rating := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(s_rating) > 0 then
-                      begin
-                        s_rating := RegExp.Replace(s_rating, '$1');
-                        TextToFloat(PChar(s_rating), e_rating, fvExtended);
-                      end;
-                    end;
-                  except
-                    s_rating := '';
-                    e_rating := 0;
-                  end;
-                end;
-                rating_avg := s_rating;
-                i_rating := Round(e_rating);
-                case i_rating of
-                  0:   rating := '☆☆☆☆☆';
-                  1:   rating := '★☆☆☆☆';
-                  2:   rating := '★★☆☆☆';
-                  3:   rating := '★★★☆☆';
-                  4:   rating := '★★★★☆';
-                  else rating := '★★★★★';
-                end;
-                //アップロード時間
-                RegExp.Pattern := GET_UPLOAD_TIME_MI_AGO;
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      upload_unixtime := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(upload_unixtime) > 0 then
-                      begin
-                        upload_unixtime := RegExp.Replace(upload_unixtime, '$1');
-                      end;
-                      upload_unixtime := IntToStr(DateTimeToUnix(now) - StrToInt(upload_unixtime) * 60);
-                      //Log(upload_unixtime);
-                    end;
-                  except
-                    upload_unixtime := '';
-                  end;
-                end;
-                if Length(upload_unixtime) = 0 then
-                begin
-                  RegExp.Pattern := GET_UPLOAD_TIME_H_AGO;
-                  begin
-                    try
-                      if RegExp.Test(tmpSearchData) then
-                      begin
-                        Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                        upload_unixtime := AnsiString(Match(Matches.Item[0]).Value);
-                        if Length(upload_unixtime) > 0 then
-                        begin
-                          upload_unixtime := RegExp.Replace(upload_unixtime, '$1');
-                        end;
-                        upload_unixtime := IntToStr(DateTimeToUnix(now) - StrToInt(upload_unixtime) * 60 * 60);
-                        //Log(upload_unixtime);
-                      end;
-                    except
-                      upload_unixtime := '';
-                    end;
-                  end;
-                end;
-                if Length(upload_unixtime) = 0 then
-                begin
-                  RegExp.Pattern := GET_UPLOAD_TIME_D_AGO;
-                  begin
-                    try
-                      if RegExp.Test(tmpSearchData) then
-                      begin
-                        Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                        upload_unixtime := AnsiString(Match(Matches.Item[0]).Value);
-                        if Length(upload_unixtime) > 0 then
-                        begin
-                          upload_unixtime := RegExp.Replace(upload_unixtime, '$1');
-                        end;
-                        upload_unixtime := IntToStr(DateTimeToUnix(now) - StrToInt(upload_unixtime) * 60 * 60 * 24);
-                        //Log(upload_unixtime);
-                      end;
-                    except
-                      upload_unixtime := '';
-                    end;
-                  end;
-                end;
-                if Length(upload_unixtime) = 0 then
-                begin
-                  RegExp.Pattern := GET_UPLOAD_TIME_W_AGO;
-                  begin
-                    try
-                      if RegExp.Test(tmpSearchData) then
-                      begin
-                        Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                        upload_unixtime := AnsiString(Match(Matches.Item[0]).Value);
-                        if Length(upload_unixtime) > 0 then
-                        begin
-                          upload_unixtime := RegExp.Replace(upload_unixtime, '$1');
-                        end;
-                        upload_unixtime := IntToStr(DateTimeToUnix(now) - StrToInt(upload_unixtime) * 60 * 60 * 24 * 7);
-                        //Log(upload_unixtime);
-                      end;
-                    except
-                      upload_unixtime := '';
-                    end;
-                  end;
-                end;
-                if Length(upload_unixtime) = 0 then
-                begin
-                  RegExp.Pattern := GET_UPLOAD_TIME_MO_AGO;
-                  begin
-                    try
-                      if RegExp.Test(tmpSearchData) then
-                      begin
-                        Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                        upload_unixtime := AnsiString(Match(Matches.Item[0]).Value);
-                        if Length(upload_unixtime) > 0 then
-                        begin
-                          upload_unixtime := RegExp.Replace(upload_unixtime, '$1');
-                        end;
-                        upload_unixtime := IntToStr(DateTimeToUnix(now) - StrToInt(upload_unixtime) * 60 * 60 * 24 * 30);
-                        //Log(upload_unixtime);
-                      end;
-                    except
-                      upload_unixtime := '';
-                    end;
-                  end;
-                end;
-                if Length(upload_unixtime) = 0 then
-                begin
-                  RegExp.Pattern := GET_UPLOAD_TIME_Y_AGO;
-                  begin
-                    try
-                      if RegExp.Test(tmpSearchData) then
-                      begin
-                        Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                        upload_unixtime := AnsiString(Match(Matches.Item[0]).Value);
-                        if Length(upload_unixtime) > 0 then
-                        begin
-                          upload_unixtime := RegExp.Replace(upload_unixtime, '$1');
-                        end;
-                        upload_unixtime := IntToStr(DateTimeToUnix(now) - StrToInt(upload_unixtime) * 60 * 60 * 24 * 365);
-                        //Log(upload_unixtime);
-                      end;
-                    except
-                      upload_unixtime := '';
-                    end;
-                  end;
-                end;
-                if Length(upload_unixtime) = 0 then
-                begin
-                  RegExp.Pattern := GET_UPLOAD_TIME; //アップロードされた時間
-                  begin
-                    try
-                      if RegExp.Test(tmpSearchData) then
-                      begin
-                        Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                        upload_unixtime := AnsiString(Match(Matches.Item[0]).Value);
-                        if Length(upload_unixtime) > 0 then
-                        begin
-                          upload_unixtime := RegExp.Replace(upload_unixtime, '$1');
-                          upload_unixtime := CustomStringReplace(upload_unixtime,  ',', '');
-                        end;
-                        //Log(upload_unixtime);
-                      end;
-                    except
-                      upload_unixtime := '';
-                    end;
-                  end;
-                end;  
-                if Length(upload_unixtime) > 0 then
-                  upload_time := UnixTime2String(upload_unixtime);
-              end;
-            end;
-          end;
-        finally
-          ContentList.Free;
-          SearchDataList.Free;
-        end;
-        Log('データ分析完了');
-
-        ListView.List := SearchList;
-        currentSortColumn := high(integer);
-        if SearchList.Count > 0 then
-        begin
-          SpTBXDockablePanelSearch.Caption := tmpSearchWord + '   [1-' + IntToStr(SearchList.Count) + ']';
-          ActionSearchBarToggleListView.Enabled := true;
-        end else
-          SpTBXDockablePanelSearch.Caption := tmpSearchWord + '   <該当データなし>';
         Log('取得完了');
 
       end;
@@ -14756,6 +14156,148 @@ begin
         UpdateFavorites;
       end;
     end;
+  end;
+end;
+
+//YouTubeAPI結果XMLのEntryNodeを解析
+function TMainWnd.YouTubeEntryXMLAnalize(EntryNode: IXMLNode; NS_media, NS_gd, NS_yt: DOMString): TANLVideoData;
+var
+  Node, Node2: IXMLNode;
+  second: integer;
+  rate: integer;
+  datetime: TDateTime;
+begin
+  Result := TANLVideoData.Create;
+  try
+    with Result do
+    begin
+      video_type := 0;
+
+      video_id := ExtractURIFile(VarToStr(EntryNode.ChildValues['id']));
+
+      upload_time := VarToStr(EntryNode.ChildValues['published']);
+      if Length(upload_time) > 0 then
+      begin
+        datetime := StrToDateTime(YouTubeDateToDateTimeStr(upload_time));
+        upload_time := FormatDateTime('yyyy/mm/dd(aaa) hh:nn:ss', datetime + (TimeZoneBias/(24*60*60)));
+        upload_unixtime := IntToStr(DateTimeToUnix(datetime));
+      end;
+
+      update_time := VarToStr(EntryNode.ChildValues['updated']);
+      if Length(update_time) > 0 then
+      begin
+        datetime := StrToDateTime(YouTubeDateToDateTimeStr(update_time));
+        update_time := FormatDateTime('yyyy/mm/dd(aaa) hh:nn:ss', datetime + (TimeZoneBias/(24*60*60)));
+        update_unixtime := IntToStr(DateTimeToUnix(datetime));
+      end;
+
+      Node := EntryNode.ChildNodes.FindNode('author');
+      if Assigned(Node) then
+      begin
+        author := VarToStr(Node.ChildValues['name']);
+        author_link := Format('<a href="%s">%s</a>', [VarToStr(Node.ChildValues['uri']), author]);
+      end;
+
+      Node := EntryNode.ChildNodes.FindNode('comments', NS_gd);
+      if Assigned(Node) then
+      begin
+        Node2 := Node.ChildNodes.FindNode('feedLink', NS_gd);
+        if Assigned(Node2) then
+        begin
+          comment_url := VarToStr(Node2.Attributes['href']);
+          comment_count := VarToStr(Node2.Attributes['countHint']);
+        end;
+      end;
+
+      Node := EntryNode.ChildNodes.FindNode('group', NS_media);
+      if Assigned(Node) then
+      begin
+        Node2 := Node.ChildNodes.FindNode('category', NS_media);
+        if Assigned(Node2) then
+          channnel := VarToStr(Node2.NodeValue);
+
+        Node2 := Node.ChildNodes.FindNode('description', NS_media);
+        if Assigned(Node2) then
+          description := VarToStr(Node2.NodeValue);
+
+        Node2 := Node.ChildNodes.FindNode('keywords', NS_media);
+        if Assigned(Node2) then
+          keywords := VarToStr(Node2.NodeValue);
+
+        Node2 := Node.ChildNodes.FindNode('player', NS_media);
+        if Assigned(Node2) then
+          player_url := VarToStr(Node2.Attributes['url']);
+
+        Node2 := Node.ChildNodes.FindNode('thumbnail', NS_media);
+        if Assigned(Node2) then
+        begin
+          thumbnail_url  := ExtractURIDir(VarToStr(Node2.Attributes['url']));
+          thumbnail_url0 := thumbnail_url + '0.jpg';
+          thumbnail_url1 := thumbnail_url + '1.jpg';
+          thumbnail_url2 := thumbnail_url + '2.jpg';
+          thumbnail_url3 := thumbnail_url + '3.jpg';
+          thumbnail_url  := thumbnail_url + 'default.jpg';
+        end;
+
+        Node2 := Node.ChildNodes.FindNode('title', NS_media);
+        if Assigned(Node2) then
+          video_title := VarToStr(Node2.NodeValue);
+
+        Node2 := Node.ChildNodes.FindNode('duration', NS_yt);
+        if Assigned(Node2) then
+          playtime_seconds := VarToStr(Node2.Attributes['seconds']);
+        if Length(playtime_seconds) > 0 then
+        begin
+          second := StrToIntDef(playtime_seconds, 0);
+          playtime := Format('%.1d:%.2d', [(second div 60), (second mod 60)]);
+        end;
+      end;
+
+      Node := EntryNode.ChildNodes.FindNode('rating', NS_gd);
+      if Assigned(Node) then
+      begin
+        rating_avg := Format('%1.2f', [VarToDouble(Node.Attributes['average'])]);
+        rationg_count := VarToStr(Node.Attributes['numRaters']);
+
+        if Length(rating_avg) > 0 then
+        begin
+          rate := Round(StrToFloatDef(rating_avg, 0));
+          case rate of
+            0:   rating := '☆☆☆☆☆';
+            1:   rating := '★☆☆☆☆';
+            2:   rating := '★★☆☆☆';
+            3:   rating := '★★★☆☆';
+            4:   rating := '★★★★☆';
+            else rating := '★★★★★';
+          end;
+        end;
+      end;
+
+      Node := EntryNode.ChildNodes.FindNode('statistics', NS_yt);
+      if Assigned(Node) then
+      begin
+        favorited_count := VarToStr(Node.Attributes['favoriteCount']);
+        view_count := VarToStr(Node.Attributes['viewCount']);
+      end;
+
+      Node := EntryNode.ChildNodes.FindNode('recorded', NS_yt);
+      if Assigned(Node) then
+      begin
+        recording_date := VarToStr(Node.NodeValue);
+        recording_date := CustomStringReplace(recording_date, '-', '/', false);
+        try
+          recording_date := FormatDateTime('yyyy/mm/dd(aaa)', StrToDateTime(recording_date));
+        except
+          recording_date := VarToStr(Node.NodeValue);
+        end;
+      end;
+
+      Node := EntryNode.ChildNodes.FindNode('location', NS_yt);
+      if Assigned(Node) then
+        recording_location := VarToStr(Node.NodeValue);
+    end;
+  except
+    FreeAndNil(Result);
   end;
 end;
 
