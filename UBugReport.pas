@@ -251,6 +251,8 @@ function GetOSName:String;
 // http://www.microsoft.com/japan/support/kb/articles/JP158/2/38.asp
 // http://msdn.microsoft.com/library/en-us/sysinfo/base/getting_the_system_version.asp
 // http://msdn.microsoft.com/library/en-us/sysinfo/base/getnativesysteminfo.asp
+// http://technet2.microsoft.com/WindowsServer/ja/Library/efd0febb-02d9-4963-b0f4-b82be29aba921041.mspx?mfr=true
+// http://msdn2.microsoft.com/en-us/library/ms724358.aspx
 type
 TOSVERSIONINFOEX =
    packed record
@@ -280,18 +282,20 @@ const
   VER_SUITE_PERSONAL                 = $0200;
   VER_SUITE_BLADE                    = $0400;
 
-  PROCESSOR_ARCHITECTURE_INTEL         =  0;
-  PROCESSOR_ARCHITECTURE_MIPS          =  1;
-  PROCESSOR_ARCHITECTURE_ALPHA         =  2;
-  PROCESSOR_ARCHITECTURE_PPC           =  3;
-  PROCESSOR_ARCHITECTURE_SHX           =  4;
-  PROCESSOR_ARCHITECTURE_ARM           =  5;
-  PROCESSOR_ARCHITECTURE_IA64          =  6;
-  PROCESSOR_ARCHITECTURE_ALPHA64       =  7;
-  PROCESSOR_ARCHITECTURE_MSIL          =  8;
-  PROCESSOR_ARCHITECTURE_AMD64         =  9;
-  PROCESSOR_ARCHITECTURE_IA32_ON_WIN64 = 10;
+  PROCESSOR_ARCHITECTURE_INTEL           =  0;
+  PROCESSOR_ARCHITECTURE_MIPS            =  1;
+  PROCESSOR_ARCHITECTURE_ALPHA           =  2;
+  PROCESSOR_ARCHITECTURE_PPC             =  3;
+  PROCESSOR_ARCHITECTURE_SHX             =  4;
+  PROCESSOR_ARCHITECTURE_ARM             =  5;
+  PROCESSOR_ARCHITECTURE_IA64            =  6;
+  PROCESSOR_ARCHITECTURE_ALPHA64         =  7;
+  PROCESSOR_ARCHITECTURE_MSIL            =  8;
+  PROCESSOR_ARCHITECTURE_AMD64           =  9;
+  PROCESSOR_ARCHITECTURE_IA32_ON_WIN64   = 10;
+
   SM_SERVERR2 = 80;
+
   PRODUCT_UNDEFINED                    = $00000000;
   PRODUCT_ULTIMATE                     = $00000001;
   PRODUCT_HOME_BASIC                   = $00000002;
@@ -317,7 +321,7 @@ const
   PRODUCT_STORAGE_WORKGROUP_SERVER     = $00000016;
   PRODUCT_STORAGE_ENTERPRISE_SERVER    = $00000017;
   PRODUCT_SERVER_FOR_SMALLBUSINESS     = $00000018;
-  PRODUCT_SMALLBUSINESS_SERVER_PREMIUM = $00000019;  
+  PRODUCT_SMALLBUSINESS_SERVER_PREMIUM = $00000019;
 var
   Unknown:Boolean;
   SP,
@@ -338,7 +342,11 @@ var
     if DLLWnd > 0 then
     begin
       try
+        {$IFDEF UNICODE}
+        po := GetProcAddress(DLLWnd, 'GetVersionExW');
+        {$ELSE}
         po := GetProcAddress(DLLWnd, 'GetVersionExA');
+        {$ENDIF}
         if po <> nil then
         begin
           @GetVersionEx2 := po;
@@ -390,21 +398,21 @@ var
     po := nil;
     DLLWnd := LoadLibrary('kernel32');
     if DLLWnd > 0 then
-      begin
-        try
-          po := GetProcAddress(DLLWnd, 'GetProductInfo');
-          if po <> nil then
-            begin
-              @GetProductInfo := po;
-              GetProductInfo(OSMajor,OSMinor,SPMajor,SPMinor,PT);
-              result := PT;
-            end;
-        finally
-          FreeLibrary(DLLWnd);
+    begin
+      try
+        po := GetProcAddress(DLLWnd, 'GetProductInfo');
+        if po <> nil then
+        begin
+          @GetProductInfo := po;
+          GetProductInfo(OSMajor,OSMinor,SPMajor,SPMinor,PT);
+          result := PT;
         end;
+      finally
+        FreeLibrary(DLLWnd);
       end;
+    end;
   end;
-  {StatusEx3 end}  
+  {StatusEx3 end}
 begin
   result := '';
   Version.dwOSVersionInfoSize := SizeOf(Version);
@@ -492,6 +500,8 @@ begin
                         VER_NT_DOMAIN_CONTROLLER:
                           begin
                             Dmy := Dmy + 'Server 2003 ';
+                            if GetSystemMetrics(SM_SERVERR2) = 1 then
+                              Dmy := Dmy + 'R2 ';
                             case SystemInfo.wProcessorArchitecture of
                               PROCESSOR_ARCHITECTURE_IA64:
                                 begin
@@ -533,11 +543,15 @@ begin
             6:begin
                 VersionEx := StatusEx;
                 case Version.dwMinorVersion of
-                  0:begin
+                  0,1:
+                    begin
                       case VersionEx.wProductType of
                         VER_NT_WORKSTATION:
                           begin
-                            Dmy := Dmy + ' Vista ';
+                            case Version.dwMinorVersion of
+                              0:Dmy := Dmy + ' Vista ';
+                              1:Dmy := Dmy + ' 7 ';
+                            end;
                             case StatusEx3(Version.dwMajorVersion,Version.dwMinorVersion,0,0) of
                               PRODUCT_ULTIMATE:
                                 Dmy := Dmy + 'Ultimate';
@@ -558,12 +572,13 @@ begin
                             end;
                           end;
                       else
-                        Dmy := Dmy + 'Server 2008 ';
-                        if GetSystemMetrics(SM_SERVERR2) = 1 then
-                          Dmy := Dmy + 'R2 ';
+                        case Version.dwMinorVersion of
+                          0:Dmy := Dmy + 'Server 2008 ';
+                          1:Dmy := Dmy + 'Server 2008 R2 ';
+                        end;
                         case StatusEx3(Version.dwMajorVersion,Version.dwMinorVersion,0,0) of
                           PRODUCT_STANDARD_SERVER:
-                                          Dmy := Dmy + 'Standard Edition';
+                            Dmy := Dmy + 'Standard Edition';
                           PRODUCT_DATACENTER_SERVER:
                             Dmy := Dmy + 'Datacenter Edition';
                           PRODUCT_SMALLBUSINESS_SERVER:
@@ -571,7 +586,7 @@ begin
                           PRODUCT_ENTERPRISE_SERVER:
                             Dmy := Dmy + 'Enterprise Edition';
                           PRODUCT_DATACENTER_SERVER_CORE:
-                           Dmy := Dmy + 'Datacenter Edition(Core)';
+                            Dmy := Dmy + 'Datacenter Edition(Core)';
                           PRODUCT_STANDARD_SERVER_CORE:
                             Dmy := Dmy + 'Standard Edition(Core)';
                           PRODUCT_ENTERPRISE_SERVER_CORE:
@@ -598,15 +613,19 @@ begin
                             Dmy := Dmy + 'Small Business Server Premium Edition';
                         end;
                       end;
-                      case SystemInfo.wProcessorArchitecture of
-                        PROCESSOR_ARCHITECTURE_IA64:
-                          Dmy := Dmy + '(IA64)';
-                        PROCESSOR_ARCHITECTURE_AMD64:
-                          Dmy := Dmy + '(x64)';
-                      end;
                     end;
                 else
                   Unknown := True;
+                end;
+                if not Unknown then
+                begin
+                  SystemInfo := StatusEx2;
+                  case SystemInfo.wProcessorArchitecture of
+                    PROCESSOR_ARCHITECTURE_IA64:
+                      Dmy := Dmy + '(IA64)';
+                    PROCESSOR_ARCHITECTURE_AMD64:
+                      Dmy := Dmy + '(x64)';
+                  end;
                 end;
               end;
           else
@@ -618,15 +637,15 @@ begin
               // NT4.0 SP6ˆÈ~ or XPˆÈ~
               if (Version.dwMajorVersion >= 5) or
                  ((Version.dwMajorVersion = 4) and (Pos('6',SP) > 0)) then
-              begin
-                VersionEx := StatusEx;
-                case VersionEx.wProductType of
-                  VER_NT_WORKSTATION:
-                     Dmy := Dmy + 'WorkStation';
-                else
-                  Dmy := Dmy + 'Server';
+                begin
+                  VersionEx := StatusEx;
+                  case VersionEx.wProductType of
+                    VER_NT_WORKSTATION:
+                       Dmy := Dmy + 'WorkStation';
+                  else
+                    Dmy := Dmy + 'Server';
+                  end;
                 end;
-              end;
             end;
         end;
     end;
