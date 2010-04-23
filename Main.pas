@@ -1,5 +1,5 @@
 unit Main;
-(* Copyright (c) 2009 Jane, Inc. <info@janesoft.net> *)
+(* Copyright (c) 2009-2010 Jane, Inc. <info@janesoft.net> *)
 
 interface
 
@@ -92,6 +92,7 @@ const
        'http://(?:ime\.nu/)?(?:www\.)?nicovideo\.jp/redir\?p=(.+)');
 
   GET_TITLE     = '<title>(.+)<\/title>';
+  GET_YOUTUBE_TITLE  = 'content="([^"]+)"';
   GET_NICO_TITLE  = '‐ニコニコ動画\([^)]+\)';
 
   GET_USER_ITEM = 'http://(?:\w+\.)?youtube\.com/user/(.+)';
@@ -114,9 +115,8 @@ const
   YOUTUBE_DEFAULT_HEIGHT2 = 370;
 
   YOUTUBE_GET_VIDEOID   = '&t=([^&]+)&';
-  //YOUTUBE_GET_VIDEOID   = '\/player2\.swf\?([^\"]+)\"';
-  YOUTUBE_GET_COMMENTS  = '([,\d]+) 件のコメントをすべて見る'; //Comments:
-  YOUTUBE_GET_FAVORITED = 'お気に入りに登録済み:</span> ([,\d]+) 回'; //Favorited:
+  YOUTUBE_GET_PLAYER = '<param\s+name=\\"movie\\"\s+value=\\"(.+?)\\">';
+  YOUTUBE_GET_FLASHVARS = '<param\s+name=\\"flashvars\\"\s+value=\\"(.+?)\\">';
 
   YOUTUBE_GET_URI_FRONT = 'http://gdata.youtube.com/feeds/api/videos';
   YOUTUBE_GET_SEARCH_URI_FRONT  = YOUTUBE_GET_URI_FRONT;
@@ -135,8 +135,6 @@ const
 
   YOUTUBE_URI   = 'http://www.youtube.com/';
   YOUTUBE_VIDEO_PLAYER  = 'http://www.youtube.com/v/'; //jpは070620現在ない
-  YOUTUBE_VIDEO_PLAYER2 = 'http://www.youtube.com/player2.swf';
-  //YOUTUBE_VIDEO_PLAYER2 = 'http://s.ytimg.com/yt/swf/watch-vfl55589.swf';
 
   YOUTUBE_GET_STANDARDFEEDS_URI_BASE = 'http://gdata.youtube.com/feeds/api/standardfeeds';
   YOUTUBE_GET_STANDARDFEEDS_URI = YOUTUBE_GET_STANDARDFEEDS_URI_BASE + '/JP';
@@ -2707,7 +2705,7 @@ begin
      not ((Sender = WebBrowser) and (SameText(NICOVIDEO_ICHIBA_URI, URL) or AnsiStartsStr(NICOVIDEO_ICHIBA_RANK_URI, URL))) and
      not SameText(NICOVIDEO_LOGOUT_URI, URL) and
      not SameText(YOUTUBE_LOGOUT_URI, URL) and
-     not AnsiStartsStr(YOUTUBE_VIDEO_PLAYER2, URL) and
+     not AnsiEndsStr('.swf', URL) and //YouTubeプレイヤーからの呼び出し
      (NicoVideoRetryCount = 0) and (YouTubeRetryCount = 0) then
   begin
     RegExp.Pattern := GET_USER_ITEM;
@@ -5542,197 +5540,6 @@ procedure TMainWnd.OnDoneYouTube(sender: TAsyncReq);
     end;
   end;
 
-  //OnDoneYouTubeRelatedから移動
-  procedure SetVideoData(sl: TStringList);
-  const
-    GET_VIDEO_ID          = '\/watch\?v=([^"]+)"';
-    GET_VIDEO_TITLE       = 'title="([^"]+)"';
-    GET_THUMBNAIL_URL1    = '''(http://.+?/default\.jpg)'''; //'src="([^"]+)"';
-    GET_PLAYTIME_SECONDS  = '(?:\d+):(?:\d+)';
-    GET_AUTHOR            = 'href="/user/([^"]+)"';
-    GET_VIEW_COUNT        = '再生回数 ([\d,]+)';
-  var
-    i: integer;
-    StartFlag: boolean;
-    EntryFlag: boolean;
-    imgFlag: boolean;
-    idFlag: boolean;
-    titleFlag: boolean;
-    timeFlag: boolean;
-    fromFlag: boolean;
-    viewsFlag: boolean;
-    Matches: MatchCollection;
-    tmp: String;
-
-    procedure ClearFlag;
-    begin
-      imgFlag := false;
-      idFlag := false;
-      titleFlag := false;
-      timeFlag := false;
-      fromFlag := false;
-      viewsFlag := false;
-    end;
-
-  begin
-    if sl.Count > 0 then
-    begin
-      try
-        StartFlag := false;
-        EntryFlag := false;
-        ClearFlag;
-        for i := 0 to sl.Count -1 do
-        begin
-          if not StartFlag then
-          begin
-            if (AnsiPos('<div id="watch-related-videos-panel"', sl[i]) > 0) then
-              StartFlag := true;
-            Continue;
-          end;
-
-          if not EntryFlag then
-          begin
-            if (AnsiPos('<div class="video-entry', sl[i]) > 0) then
-            begin 
-              EntryFlag := True;
-              SetLength(VideoData.RelatedList, Length(VideoData.RelatedList) + 1);
-              ClearFlag;
-            end;
-          end else
-          begin
-            with VideoData.RelatedList[Length(VideoData.RelatedList) -1] do
-            begin
-              if not idFlag then //VideoIDを取得
-              begin
-                RegExp.Pattern := GET_VIDEO_ID;
-                if RegExp.Test(sl[i]) then
-                begin
-                  Matches := RegExp.Execute(sl[i]) as MatchCollection;
-                  tmp := Match(Matches.Item[0]).Value;
-                  if Length(tmp) > 0 then
-                  begin
-                    tmp := RegExp.Replace(tmp, '$1');
-                    video_id := tmp;
-                  end;
-                  idFlag := True;
-                end;
-              end;
-
-              if not imgFlag then //サムネイル
-              begin
-                RegExp.Pattern := GET_THUMBNAIL_URL1;
-                begin
-                  try
-                    if RegExp.Test(sl[i]) then
-                    begin
-                      Matches := RegExp.Execute(sl[i]) as MatchCollection;
-                      thumbnail_url1 := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(thumbnail_url1) > 0 then
-                      begin
-                        thumbnail_url1 := RegExp.Replace(thumbnail_url1, '$1');
-                      end;
-                      //Log(thumbnail_url1);
-                    end;
-                  except
-                    thumbnail_url1 := '';
-                  end;
-                end;
-
-                if Length(thumbnail_url1) > 0 then
-                begin
-                  thumbnail_url2 := CustomStringReplace(thumbnail_url1, '/default.jpg', '/2.jpg');
-                  thumbnail_url3 := CustomStringReplace(thumbnail_url1, '/default.jpg', '/3.jpg');
-                  thumbnail_url1 := CustomStringReplace(thumbnail_url1, '/default.jpg', '/1.jpg');
-                  imgFlag := True;
-                end;
-              end;
-
-              if not titleFlag then //タイトルを取得
-              begin
-                RegExp.Pattern := GET_VIDEO_TITLE;
-                if RegExp.Test(sl[i]) then
-                begin
-                  Matches := RegExp.Execute(sl[i]) as MatchCollection;
-                  tmp := Match(Matches.Item[0]).Value;
-                  if Length(tmp) > 0 then
-                  begin
-                    tmp := RegExp.Replace(tmp, '$1');
-                    video_title := tmp;
-                  end;
-                  titleFlag := True;
-                end;
-              end;
-
-              if not timeFlag then  //再生時間を取得
-              begin
-                RegExp.Pattern := GET_PLAYTIME_SECONDS;
-                if RegExp.Test(sl[i]) then
-                begin
-                  Matches := RegExp.Execute(sl[i]) as MatchCollection;
-                  tmp := Match(Matches.Item[0]).Value;
-                  if Length(tmp) > 0 then
-                  begin
-                    playtime := tmp;
-                  end;
-                  timeFlag := True;
-                end;
-              end;
-
-              if not fromFlag then  //投稿者を取得
-              begin
-                RegExp.Pattern := GET_AUTHOR;
-                if RegExp.Test(sl[i]) then
-                begin
-                  Matches := RegExp.Execute(sl[i]) as MatchCollection;
-                  tmp := Match(Matches.Item[0]).Value;
-                  if Length(tmp) > 0 then
-                  begin
-                    tmp := RegExp.Replace(tmp, '$1');
-                    author := tmp;
-                    if Length(author) > 0 then
-                      author_link := '<a href="' + YOUTUBE_USER_PROFILE_URI + author +'">' + author + '</a>';
-                  end;
-                  fromFlag := True;
-                end;
-              end;
-
-              if not viewsFlag then  //閲覧回数を取得
-              begin
-                RegExp.Pattern := GET_VIEW_COUNT;
-                if RegExp.Test(sl[i]) then
-                begin
-                  Matches := RegExp.Execute(sl[i]) as MatchCollection;
-                  tmp := Match(Matches.Item[0]).Value;
-                  if Length(tmp) > 0 then
-                  begin
-                    tmp := RegExp.Replace(tmp, '$1');
-                    view_count := tmp;
-                  end;
-                  viewsFlag := True;
-                end;
-              end;
-
-              if not(imgFlag and idFlag and titleFlag and timeFlag and fromFlag and viewsFlag) then
-              begin
-                if (AnsiPos('<div class="video-entry', sl[i]) > 0) then
-                begin
-                  EntryFlag := True;
-                  SetLength(VideoData.RelatedList, Length(VideoData.RelatedList) + 1);
-                  ClearFlag;
-                end;
-              end else
-              begin
-                EntryFlag := false;
-                ClearFlag;
-              end;
-            end;
-          end;
-        end;
-      except
-      end;
-    end;
-  end;
-
 var
   i: integer;
   ContentList: TStringList;
@@ -5742,10 +5549,12 @@ var
   quality: String;
   title_flag: boolean;
   videoid_flag: boolean;
-  comments_flag: boolean;
-  favorited_flag: boolean;
+  video_player_flag: boolean;
+  flashvars_flag: boolean;
   dl_video_id : string;
-  //URL: OleVariant;
+  //URL: OleVariant; 
+  video_player: string;
+  flashvars: string;
 begin
   if procGet = sender then
   begin
@@ -5758,8 +5567,8 @@ begin
 
         title_flag := false;
         videoid_flag := false;
-        comments_flag := false;
-        favorited_flag := false;
+        video_player_flag := false;
+        flashvars_flag := false;
 
         ContentList := TStringList.Create;
         try
@@ -5773,7 +5582,7 @@ begin
               Continue;
             if not title_flag then
             begin
-              RegExp.Pattern := GET_TITLE;
+              RegExp.Pattern := GET_YOUTUBE_TITLE;
               begin
                 try
                   if RegExp.Test(Content) then
@@ -5829,96 +5638,66 @@ begin
               end;
             end;
 
-            if not comments_flag then
+            if not video_player_flag then
             begin
-              RegExp.Pattern := YOUTUBE_GET_COMMENTS;
+              RegExp.Pattern := YOUTUBE_GET_PLAYER;
               try
                 if RegExp.Test(Content) then
                 begin
                   Matches := RegExp.Execute(Content) as MatchCollection;
-                  VideoData.comment_count := AnsiString(Match(Matches.Item[0]).Value);
-                  if Length(VideoData.comment_count) > 0 then
+                  video_player := AnsiString(Match(Matches.Item[0]).Value);
+                  if Length(video_player) > 0 then
                   begin
-                    VideoData.comment_count := RegExp.Replace(VideoData.comment_count, '$1');
-                    Log('コメント数:' + VideoData.comment_count);
+                    video_player := RegExp.Replace(video_player, '$1');
+                    video_player := CustomStringReplace(video_player, '\', '');
+                    //Log('player:' + video_player);
                   end;
-                  comments_flag := True;
+                  video_player_flag := True;
                 end;
               except
                 on E: Exception do
                 begin
-                  //MessageDlg(e.Message  + #13#10 + Content + #13#10 + RegExp.Pattern, mtError, [mbOK], -1);
+                  MessageDlg(e.Message  + #13#10 + Content + #13#10 + RegExp.Pattern, mtError, [mbOK], -1);
                   Log(e.Message  + #13#10 + Content + #13#10 + RegExp.Pattern);
-                  Log('コメント数の分析に失敗しました。');
-                  comments_flag := True;
+                  Log('playerの分析に失敗しました。');
+                  video_player_flag := True;
                 end;
               end;
             end;
 
-            if not favorited_flag then
+            if not flashvars_flag then
             begin
-              RegExp.Pattern := YOUTUBE_GET_FAVORITED;
+              RegExp.Pattern := YOUTUBE_GET_FLASHVARS;
               try
                 if RegExp.Test(Content) then
                 begin
                   Matches := RegExp.Execute(Content) as MatchCollection;
-                  VideoData.favorited_count := AnsiString(Match(Matches.Item[0]).Value);
-                  if Length(VideoData.favorited_count) > 0 then
+                  flashvars:= AnsiString(Match(Matches.Item[0]).Value);
+                  if Length(flashvars) > 0 then
                   begin
-                    VideoData.favorited_count := RegExp.Replace(VideoData.favorited_count, '$1');
-                    Log('お気に入り回数:' + VideoData.favorited_count);
+                    flashvars := RegExp.Replace(flashvars, '$1');
+                    //Log('flashvars:' + flashvars);
                   end;
-                  favorited_flag := True;
+                  flashvars_flag := True;
                 end;
               except
                 on E: Exception do
                 begin
-                  //MessageDlg(e.Message  + #13#10 + Content + #13#10 + RegExp.Pattern, mtError, [mbOK], -1);
+                  MessageDlg(e.Message  + #13#10 + Content + #13#10 + RegExp.Pattern, mtError, [mbOK], -1);
                   Log(e.Message  + #13#10 + Content + #13#10 + RegExp.Pattern);
-                  Log('お気に入り回数の分析に失敗しました。');
-                  favorited_flag := True;
+                  Log('flashvarsの分析に失敗しました。');
+                  flashvars_flag := True;
                 end;
               end;
             end;
 
             if title_flag and videoid_flag and
-               comments_flag and favorited_flag then
+               video_player_flag and flashvars_flag then
               break;
           end;
 
-          //関連ビデオを作成
-          SetVideoData(ContentList);
-
-          innerHTML := R_HeaderHTML;
-          for i := 0 to Length(VideoData.RelatedList) -1 do
-          begin
-            Content := R_ContentHTML;
-            with VideoData.RelatedList[i] do
-            begin
-              if video_id = VideoData.video_id then
-                Continue;
-              Content := CustomStringReplace(Content, '$THUMBNAIL_URL1', thumbnail_url1);
-              Content := CustomStringReplace(Content, '$THUMBNAIL_URL2', thumbnail_url2);
-              Content := CustomStringReplace(Content, '$THUMBNAIL_URL3', thumbnail_url3);
-              Content := CustomStringReplace(Content, '$VIDEOID', video_id);
-              Content := CustomStringReplace(Content, '$VIDEOTITLE', video_title);
-              Content := CustomStringReplace(Content, '$PLAYTIME', playtime);
-              Content := CustomStringReplace(Content, '$AUTHOR_LINK', author_link);
-              Content := CustomStringReplace(Content, '$AUTHOR', author);
-              Content := CustomStringReplace(Content, '$VIEW_COUNT', view_count);
-            end;
-            innerHTML := innerHTML + Content;
-          end;
-
-          innerHTML := innerHTML + R_FooterHTML;
-          innerHTML := CustomStringReplace(innerHTML, '$SKINPATH', Config.optSkinPath);
-
-          WebBrowser3.LoadFromString(innerHTML);
-
-          SpTBXDockablePanelVideoRelated.Caption := '関連ビデオ';
+        finally  
           Log('データ分析完了');
-
-        finally
           ContentList.Free;
         end;
 
@@ -5960,12 +5739,12 @@ begin
                          'embed#EmbedFlash{background: #000000;margin: 0;padding: 0; border: 0; width:expression(document.body.offsetWidth); height:expression(document.body.offsetHeight)} -->'#10 +
                          '</style>'#10 +
                          '</head><body>'#10 +
-                         '<embed id="EmbedFlash" src="' + YOUTUBE_VIDEO_PLAYER2 + '"' +
+                         '<embed id="EmbedFlash" src="' + video_player + '"' +
                          ' type=application/x-shockwave-flash wmode=transparent quality=' +
                          quality +
                          ' allowfullscreen="true"' +
                          ' AllowScriptAccess="always"' +
-                         ' FlashVars="BASE_YT_URL=http%3A%2F%2Fwww.youtube.com%2F&vq=2&' + dl_video_id + '"' +
+                         ' FlashVars=' + flashvars +
                          '></embed></body></html>';
             //log(innerHTML);
             WebBrowser.LoadFromString(innerHTML);
