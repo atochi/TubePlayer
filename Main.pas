@@ -34,12 +34,12 @@ uses
   HogeListView, Config, UFavorite, UXMLSub, VirtualTrees;
 
 const
-  VERSION  = '2.29';
+  VERSION  = '2.30É¿';
   APPLICATION_NAME  = 'TubePlayer';
 
   DISTRIBUTORS_SITE = 'http://janesoft.net/tube/';
   UPDATE_CHECK_URI  = 'http://janesoft.net/tube/version.txt'; 
-  COPYRIGHT         = 'Copyright (C) 2009 Jane, Inc.';
+  COPYRIGHT         = 'Copyright (C) 2009-2010 Jane, Inc.';
   COPYRIGHT2        = 'Copyright (C) 2007-2009 ÅüStyle/kK.s.';
 
   JANE_BBS_URI = 'http://jbbs.livedoor.jp/internet/8173/';
