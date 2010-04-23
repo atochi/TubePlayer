@@ -117,6 +117,7 @@ const
   YOUTUBE_GET_VIDEOID   = '&t=([^&]+)&';
   YOUTUBE_GET_PLAYER = '<param\s+name=\\"movie\\"\s+value=\\"(.+?)\\">';
   YOUTUBE_GET_FLASHVARS = '<param\s+name=\\"flashvars\\"\s+value=\\"(.+?)\\">';
+  YOUTUBE_GET_FLASHVARS_ADS = '(&ad_[^=]+=)[^&]+';
 
   YOUTUBE_GET_URI_FRONT = 'http://gdata.youtube.com/feeds/api/videos';
   YOUTUBE_GET_SEARCH_URI_FRONT  = YOUTUBE_GET_URI_FRONT;
@@ -5678,6 +5679,23 @@ begin
                     flashvars := RegExp.Replace(flashvars, '$1');
                     //Log('flashvars:' + flashvars);
                   end;
+
+                  if Length(flashvars) > 0 then //çLçêçÌèú
+                  begin
+                    RegExp.Pattern := YOUTUBE_GET_FLASHVARS_ADS;
+                    try
+                      if RegExp.Test(flashvars) then
+                        flashvars := RegExp.Replace(flashvars, '$1');
+                    except
+                      on E: Exception do
+                      begin
+                        MessageDlg(e.Message  + #13#10 + Content + #13#10 + RegExp.Pattern, mtError, [mbOK], -1);
+                        Log(e.Message  + #13#10 + Content + #13#10 + RegExp.Pattern);
+                        Log('flashvars_AdÇÃï™êÕÇ…é∏îsÇµÇ‹ÇµÇΩÅB');
+                      end;
+                    end;
+                  end;
+
                   flashvars_flag := True;
                 end;
               except
