@@ -4243,7 +4243,7 @@ begin
           end;
 
           //コメント
-          RegExp.Pattern := '<p class="video_des">(.|\n)+?</p>';
+          RegExp.Pattern := 'class="video_des_tit">(?:.|\n)+?(<p class="font12">(?:.|\n)+?</p>)';
           try
             if RegExp.Test(ContentList.Text) then
             begin
@@ -4251,7 +4251,8 @@ begin
               tmpInfo := AnsiString(Match(Matches.Item[0]).Value);
               if Length(tmpInfo) > 0 then
               begin
-                tmpInfo := CustomStringReplace(tmpInfo, 'class="video_des"', 'style="font-size:12px; line-height:1.5;  background:#F9F9F9; border:solid #999; border-width:2px; padding:6px;"');
+                tmpInfo := RegExp.Replace(tmpInfo, '$1');
+                tmpInfo := CustomStringReplace(tmpInfo, 'class="font12"', 'style="font-size:12px; line-height:1.5;  background:#F9F9F9; border:solid #999; border-width:2px; padding:6px;"');
                 infoContents := infoContents +
                                 tmpInfo +
                                 #13#10;
@@ -4425,12 +4426,10 @@ begin
         end;
 
       end;
-    {
     302:
       begin
         GetRetry;
       end;
-    }
     else
       begin
         Log('データの取得に失敗しました。');
@@ -4445,6 +4444,7 @@ begin
       if Length(video_id) = 0 then
         video_id := VideoData.video_id;
 
+      (* ニコニコ市場取得処理を付けるまでコメントアウト
       Log('');
       SpTBXDockablePanelVideoRelated.Caption := '関連商品' + ' <取得中>';
       Log('ニコニコ市場取得開始 (' + VideoData.video_id + ')');
@@ -4460,6 +4460,7 @@ begin
       end;
       //Log(ICHIBA_URI + video_id + '&js_user_id=' + user_id);
       procGet := AsyncManager.Get(ICHIBA_URI + video_id + '&js_user_id=' + user_id, OnDoneNicoVideoIchiba, OnNicoVideoPreConnect);
+      *)
     end;
   end;
 end;
