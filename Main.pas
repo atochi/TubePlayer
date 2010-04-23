@@ -5698,6 +5698,11 @@ begin
                     end;
                   end;
 
+                  if Config.optAutoPlay then
+                    flashvars := flashvars + '&autoplay=1'
+                  else
+                    flashvars := flashvars + '&autoplay=0';
+
                   flashvars_flag := True;
                 end;
               except

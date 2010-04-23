@@ -137,7 +137,6 @@ type
     procedure FormCreate(Sender: TObject);
     procedure TreeViewChange(Sender: TObject; Node: TTreeNode);
     procedure PageControlChange(Sender: TObject);
-    procedure CheckBoxoptUsePlayer2Click(Sender: TObject);
     procedure ButtonSelBrowserClick(Sender: TObject);
     procedure ButtonSelDownloaderClick(Sender: TObject);
     procedure RadioGroupoptDeactiveOptionClick(Sender: TObject);
@@ -353,7 +352,6 @@ begin
   self.CheckBoxoptUsePlayer2.Checked := Main.Config.optUsePlayer2;
   self.CheckBoxoptAutoPlay.Checked := Main.Config.optAutoPlay; 
   self.CheckBoxoptUseMP4.Checked := Main.Config.optUseMP4;
-  CheckBoxoptAutoPlay.Enabled := not CheckBoxoptUsePlayer2.Checked;
   self.ComboBoxSkinPath.Text := Main.Config.optSkinPath;
 
   self.CheckBoxoptUpdateCheck.Checked := Main.Config.optUpdateCheck;
@@ -405,11 +403,6 @@ begin
     FindClose(sr);
   end;
   PageControl.ActivePage.Tag := 1; //èâä˙âª
-end;
-
-procedure TUIConfig.CheckBoxoptUsePlayer2Click(Sender: TObject);
-begin
-  CheckBoxoptAutoPlay.Enabled := not CheckBoxoptUsePlayer2.Checked;
 end;
 
 procedure TUIConfig.ButtonSelBrowserClick(Sender: TObject);

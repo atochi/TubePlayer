@@ -397,7 +397,6 @@ object UIConfig: TUIConfig
         Height = 15
         Caption = #12469#12452#12488#20869#12503#12524#12452#12516#12540#12391#20877#29983#12377#12427
         TabOrder = 0
-        OnClick = CheckBoxoptUsePlayer2Click
       end
       object CheckBoxoptAutoPlay: TSpTBXCheckBox
         Left = 16
