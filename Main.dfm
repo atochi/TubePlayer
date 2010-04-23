@@ -254,12 +254,6 @@ object MainWnd: TMainWnd
           end
           object SpTBXSeparatorItem39: TSpTBXSeparatorItem
           end
-          object MenuFilePlayDARAO: TSpTBXItem
-            Caption = 'DARAO'#12434#35222#32884#12377#12427'(&Z)'
-            Action = ActionPlayDARAO
-          end
-          object SpTBXSeparatorItem29: TSpTBXSeparatorItem
-          end
           object MenuFileLogOut: TSpTBXSubmenuItem
             Caption = #12525#12464#12450#12454#12488'(&L)'
             object MenuFileLogOutFromYouTube: TSpTBXItem
@@ -2240,11 +2234,6 @@ object MainWnd: TMainWnd
       ImageIndex = 12
       OnExecute = ActionToggleWindowSizeExecute
     end
-    object ActionPlayDARAO: TTntAction
-      Category = #12501#12449#12452#12523
-      Caption = 'DARAO'#12434#35222#32884#12377#12427'(&Z)'
-      OnExecute = ActionPlayDARAOExecute
-    end
     object ActionToggleSearchTarget: TTntAction
       Category = #26908#32034
       Caption = #26908#32034#20999#26367'(&T)'
@@ -2404,10 +2393,6 @@ object MainWnd: TMainWnd
       Caption = #26368#36817#35222#32884
       Options = [tboDropdownArrow]
       OnClick = CustomRecentlyViewedClick
-    end
-    object CustomViewPlayDARAO: TSpTBXItem
-      Caption = 'DARAO'
-      Action = ActionPlayDARAO
     end
     object CustomLogOutFromYouTube: TSpTBXItem
       Caption = 'YouTube'#12363#12425#12525#12464#12450#12454#12488
@@ -2780,7 +2765,7 @@ object MainWnd: TMainWnd
     Left = 24
     Top = 272
     Bitmap = {
-      494C010113001800040010001000FFFFFFFFFF00FFFFFFFFFFFFFFFF424D3600
+      494C010113001800040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000006000000001002000000000000060
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -3576,7 +3561,8 @@ object MainWnd: TMainWnd
       8001E00F980FC001800100039007C001800100038003C0018001000180C1C001
       8001000181FFC00180010000C001C00180010000C001C00180010007C1C1C001
       80010007C0C1C0018001003FE003C0008001003FF006C0008001003FF80EC000
-      800387FFFFC0C001FFFFFFFFFFF1C003}
+      800387FFFFC0C001FFFFFFFFFFF1C00300000000000000000000000000000000
+      000000000000}
   end
   object TimerGetNicoVideoData: TTimer
     Enabled = False

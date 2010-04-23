@@ -26,7 +26,7 @@ uses
   //SpTBXLib_skins
   spSkinGold, spSkinGreener, spSkinHackerBW, spSkinVistaBlue,
   //etc
-  SHDocVw_TLB, MSHTML_TLB, //DARAOのcss書き換え用
+  SHDocVw_TLB, MSHTML_TLB, //css書き換え用
   CommonUtils,
   //IdCookie, //セッション取得用
   WinInet, URLMon, //Proxy切り替え用
@@ -191,9 +191,6 @@ const
 
   //Ameba Vision
   AMEBAVISION_URI = 'http://vision.ameba.jp/watch.do?movie=';
-
-  //DARAO
-  DARAO_URI = 'http://darao.tv/';
 
   //ソート
   LVSC_NUMBER         = 1;
@@ -872,10 +869,6 @@ type
     CustomActionToggleWindowSize: TSpTBXItem;
     PopupMenuToggleWindowSize: TSpTBXItem;
     ToolButtonToggleWindowSize: TSpTBXItem;
-    ActionPlayDARAO: TTntAction;
-    SpTBXSeparatorItem29: TSpTBXSeparatorItem;
-    MenuFilePlayDARAO: TSpTBXItem;
-    CustomViewPlayDARAO: TSpTBXItem;
     SearchBarToggleSearchTarget: TSpTBXSubmenuItem;
     MenuSearch: TSpTBXSubmenuItem;
     MenuSearchSearchBarToggleListView: TSpTBXItem;
@@ -1285,7 +1278,6 @@ type
     function EmbeddedWBTranslateAccelerator(const lpMsg: PMsg;
       const pguidCmdGroup: PGUID; const nCmdID: Cardinal): HRESULT;
     procedure ActionToggleWindowSizeExecute(Sender: TObject);
-    procedure ActionPlayDARAOExecute(Sender: TObject);
     procedure ActionToggleSearchTargetExecute(Sender: TObject);
     procedure GetExtraExecute(Sender: TObject);
     procedure GetRankingExecute(Sender: TObject);
@@ -2342,8 +2334,6 @@ begin
     ActionAddTag.Enabled := false;
     ActionAddAuthor.Enabled := false;
 
-    ActionPlayDARAO.Enabled := false;
-
     ActionOpenNew.Enabled := false;
     ActionOpenByBrowser.Enabled := false;
     ActionOpenPrimarySite.Enabled := false; 
@@ -2703,7 +2693,6 @@ var
 begin
   if (Length(URL) > 0) and
      (AnsiStartsStr('http://', URL) or AnsiStartsStr('https://', URL)) and
-     not SameText(DARAO_URI, URL) and
      not ((Sender = WebBrowser) and (SameText(NICOVIDEO_ICHIBA_URI, URL) or AnsiStartsStr(NICOVIDEO_ICHIBA_RANK_URI, URL))) and
      not SameText(NICOVIDEO_LOGOUT_URI, URL) and
      not SameText(YOUTUBE_LOGOUT_URI, URL) and
@@ -3571,19 +3560,7 @@ begin
     DocComplete  := True;
     if WebBrowser.Document = nil then
       exit;
-    if SameText(DARAO_URI, URL) then //DARAO
-    begin
-      LabelURL.Caption := 'DARAO';
-      Self.Caption := APPLICATION_NAME + ' - [' + 'DARAO' + ']';
-      Application.Title := Self.Caption;
-      if SpTBXTitleBar.Active then
-        SpTBXTitleBar.Caption := Self.Caption;
-      try
-        IHTMLDocument2(WebBrowser.Document).body.style.cssText := 'overflow:hidden';
-      except
-      end;
-    end
-    else if (VideoData.video_type = 0) then //YouTube
+    if (VideoData.video_type = 0) then //YouTube
     begin
       if TimerSetSetBounds.Enabled then
         TimerSetSetBoundsTimer(Self);
@@ -9946,28 +9923,6 @@ begin
   begin
     Self.Width :=  VideoWidth + GetSystemMetrics(SM_CXFRAME) * 2 + Self.BorderWidth * 2 + DockLeft.Width + DockLeft2.Width + DockRight.Width + DockRight2.Width + SpTBXSplitterLeft.Width + SpTBXSplitterRight.Width;
     Self.Height := VideoHeight + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYSIZEFRAME) * 2 + DockTop.Height + DockBottom.Height;
-  end;
-end;
-
-//DARAOを視聴する
-procedure TMainWnd.ActionPlayDARAOExecute(Sender: TObject);
-var
-  URL: OleVariant;
-begin
-  ActionClearVideoPanel.Execute;
-  URL := DARAO_URI;
-  WebBrowser.Navigate2(URL);
-  tmpURI := URL;
-  ActionClearVideoPanel.Enabled := True;
-  LabelURL.Caption := 'DARAO';
-  Self.Caption := APPLICATION_NAME + ' - [' + 'DARAO' + ']';
-  Application.Title := Self.Caption;
-  if SpTBXTitleBar.Active then
-    SpTBXTitleBar.Caption := Self.Caption;
-  if Config.optFormStayOnTopPlaying then
-  begin
-    Config.optFormStayOnTop := false;
-    ActionStayOnTop.Execute;
   end;
 end;
 
