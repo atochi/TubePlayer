@@ -8656,13 +8656,12 @@ var
   end;
 
 const
-  GET_TOTALCOUNT       = '<strong(?:[^>]+)?>([\d,]+)件?</strong>[ ]?件?';
+  GET_TOTALCOUNT       = '<strong(?:[^>]+)?>([\d,]+)件?</strong>';
   GET_VIDEO_TITLE      = '<span class="vinfo_title">([^<]+)</span>';
-                         //'img alt="([^"]+)"';
-  GET_VIDEO_ID         = 'watch\/([^"]+)">';
+  GET_VIDEO_ID         = '"watch\/([^"]+)"';
   GET_PLAYTIME_SECONDS = '>(\d{1,3}):(\d{2})<';
-  GET_VIEW_COUNT       = '再生：<strong(?:[^>]+)?>([\d,]+)</strong>';
-  GET_RATIONG_COUNT    = 'コメ：<strong(?:[^>]+)?>([\d,]+)</strong>';
+  GET_VIEW_COUNT       = '<strong class="vinfo_view">([\d,]+)</strong>';
+  GET_RATIONG_COUNT    = '<strong class="vinfo_res">([\d,]+)</strong>';
   GET_UPLOAD_TIME      = '(\d+)/(\d+)/(\d+)[\s]?(\d+):(\d+)';
 begin
   if procGet3 = sender then
@@ -8769,11 +8768,11 @@ begin
                 begin
                   DataStart := True;
                   tmpSearchData := ContentList[i];
-                end else if DataStart and (AnsiPos('class="vinfo_last_res"', ContentList[i]) > 0) then
+                end else if DataStart and (AnsiPos('</div>', ContentList[i]) > 0) and
+                            (AnsiPos('<!---->', ContentList[i-1]) > 0) then
                 begin
                   DataStart := false;
-                  tmpSearchData := tmpSearchData + ContentList[i] + '</div>';
-                  //if (AnsiPos('コメント', tmpSearchData) > 0) then
+                  tmpSearchData := tmpSearchData + '</div>';
                   SearchDataList.Add(tmpSearchData);
                   tmpSearchData := '';
                 end else if DataStart then
@@ -8971,12 +8970,10 @@ begin
           Log('検索完了');
         end;
       end;
-    {
     302:
       begin
         GetRetry;
       end;
-    }
     else
       begin
         SpTBXDockablePanelSearch.Caption := LabelWord + '[' + tmpSearchWord + ']   <取得失敗>';
