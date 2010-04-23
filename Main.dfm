@@ -1239,7 +1239,7 @@ object MainWnd: TMainWnd
             Hint = #35373#23450
             Action = ActionSetting
           end
-          object SpTBXSeparatorItem15: TSpTBXSeparatorItem
+          object SpTBXSeparatorItem28: TSpTBXSeparatorItem
           end
           object MenuToolCustomize: TSpTBXItem
             Caption = #12459#12473#12479#12510#12452#12474'(&C)...'
@@ -1270,6 +1270,12 @@ object MainWnd: TMainWnd
             Action = ActionHelp
           end
           object SpTBXSeparatorItem5: TSpTBXSeparatorItem
+          end
+          object MenuOpenJaneBBS: TSpTBXItem
+            Caption = #12472#12455#12540#12531'BBS'#12434#38283#12367'(&J)...'
+            Action = ActionOpenJaneBBS
+          end
+          object SpTBXSeparatorItem15: TSpTBXSeparatorItem
           end
           object MenuHelpOpen: TSpTBXSubmenuItem
             Caption = #22806#37096#12502#12521#12454#12470#12391#38283#12367'(&O)'
@@ -2374,6 +2380,11 @@ object MainWnd: TMainWnd
       Category = 'FavoriteList'
       Caption = #12510#12452#12522#12473#12488#12434#12362#27671#12395#20837#12426#12395#36861#21152'(&M)'
       OnExecute = ActionFavoritePopupAddMylistExecute
+    end
+    object ActionOpenJaneBBS: TTntAction
+      Category = #12504#12523#12503
+      Caption = #12472#12455#12540#12531'BBS'#12434#38283#12367'(&J)...'
+      OnExecute = ActionOpenJaneBBSExecute
     end
   end
   object SpTBXCustomizer: TSpTBXCustomizer

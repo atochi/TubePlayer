@@ -42,7 +42,7 @@ const
   COPYRIGHT         = 'Copyright (C) 2009 Jane, Inc.';
   COPYRIGHT2        = 'Copyright (C) 2007-2009 ◆Style/kK.s.';
 
-  SOFTWARE_BBS_URI  = 'http://pc11.2ch.net/software/';
+  JANE_BBS_URI = 'http://jbbs.livedoor.jp/internet/8173/';
 
   USERAGENT = 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1; Trident/4.0)';
 
@@ -1158,6 +1158,9 @@ type
     SpTBXItem19: TSpTBXItem;
     SpTBXItem20: TSpTBXItem;
     MenuSearchNicoVideoHotlist: TSpTBXItem;
+    SpTBXSeparatorItem28: TSpTBXSeparatorItem;
+    MenuOpenJaneBBS: TSpTBXItem;
+    ActionOpenJaneBBS: TTntAction;
     procedure WebBrowserCreate;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -1386,6 +1389,7 @@ type
     procedure MenuSearchNicoVideoCategorySettingClick(Sender: TObject);
     procedure MenuSearchToggleSearchTargetNicoVideoSettingCategoryExecute(Sender: TObject);
     procedure ActionFavoritePopupAddMylistExecute(Sender: TObject);
+    procedure ActionOpenJaneBBSExecute(Sender: TObject);
   private
     { Private 宣言 }
     procedure ON_WM_COPYDATA(var msg: TWMCopyData); message WM_COPYDATA;
@@ -14077,6 +14081,12 @@ begin
   except
     FreeAndNil(Result);
   end;
+end;
+
+//ジェーンBBSを開く
+procedure TMainWnd.ActionOpenJaneBBSExecute(Sender: TObject);
+begin
+  OpenByBrowser(Main.JANE_BBS_URI);
 end;
 
 initialization

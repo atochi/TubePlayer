@@ -12,7 +12,7 @@ uses
 
 const
   LABEL_CAPTION = 'TubePlayer の不具合を発見された方は下記のテンプレートを用いて'+ #13#10 +
-                  '「ソフトウェア板」の「TubePlayer && SmileDownloader Part**」のスレッドに報告して下さい。' + #13#10 +
+                  '「ジェーンBBS」の「TubePlayer Part**」のスレッドに報告して下さい。' + #13#10 +
                   '報告をもとに不具合をできる限り修正したいと思います。';
 
   LABEL2_CAPTION = '※不具合報告は最新バージョンのみ受け付けています。' + #13#10 +
@@ -871,7 +871,7 @@ end;
 procedure TBugReport.LabelURIClick(Sender: TObject);
 begin
   Clipboard.AsText := Memo.Text;
-  MainWnd.OpenByBrowser(Main.SOFTWARE_BBS_URI);
+  MainWnd.OpenByBrowser(Main.JANE_BBS_URI);
   ModalResult := mrOK;
 end;
 
