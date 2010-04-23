@@ -10232,8 +10232,8 @@ const
   GET_VIDEO_TITLE      = 'href="(?:http://www\.nicovideo\.jp/)?watch\/[^"]+">([^<]+)<\/a>';
   GET_VIDEO_ID         = 'watch\/([^"]+)">';
   GET_PLAYTIME_SECONDS = '>(\d{1,3}):(\d{2})<';
-  GET_VIEW_COUNT       = '再生：<strong(?:[^>]+)?>([\d,]+)<\/strong>';
-  GET_RATIONG_COUNT    = 'コメント：<strong(?:[^>]+)?>([\d,]+)<\/strong>';
+  GET_VIEW_COUNT       = '再生 <strong>([\d,]+)<\/strong>';
+  GET_RATIONG_COUNT    = 'コメ <strong>([\d,]+)<\/strong>';
   GET_UPLOAD_TIME      = '(\d+)年(\d+)月(\d+)日[\s]?(\d+):(\d+)';
 begin
   if procGet3 = sender then
