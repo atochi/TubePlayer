@@ -95,7 +95,7 @@ const
   GET_YOUTUBE_TITLE  = 'content="([^"]+)"';
   GET_NICO_TITLE  = '‐ニコニコ動画\([^)]+\)';
 
-  GET_USER_ITEM = 'http://(?:\w+\.)?youtube\.com/user/(.+)';
+  GET_USER_ITEM = 'http://gdata.youtube.com/feeds/api/users/(.+)';
   GET_ICHIBA_ITEM = 'http://ichiba.nicovideo.jp/item/(.+)';
   GET_ICHIBA_RELATION = 'http://ichiba.nicovideo.jp/relationvideo/';
   GET_MYLIST = 'http://www.nicovideo.jp/mylist/(?:\d+)(?:/\d+)?';
