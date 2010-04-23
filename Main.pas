@@ -12252,8 +12252,11 @@ var
   Data: PDataItem;
 begin
   Data := Sender.GetNodeData(Node);
-  if Assigned(Data) then
-    ImageIndex := Data^.ImageIndex;
+  if Kind in [ikNormal, ikSelected] then //‚±‚ê‚ª‚È‚¢‚ÆImage‚ª‚©‚Ô‚é
+  begin
+    if Assigned(Data) then
+      ImageIndex := Data^.ImageIndex;
+  end;
 end;
 
 procedure TMainWnd.VirtualFavoriteViewGetText(Sender: TBaseVirtualTree;
