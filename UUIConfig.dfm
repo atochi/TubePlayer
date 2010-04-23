@@ -63,7 +63,7 @@ object UIConfig: TUIConfig
     Top = 8
     Width = 409
     Height = 401
-    ActivePage = TabSheetnicovideo
+    ActivePage = TabSheetYouTube
     MultiLine = True
     Style = tsFlatButtons
     TabOrder = 3
@@ -577,6 +577,7 @@ object UIConfig: TUIConfig
         Height = 81
         Caption = #12525#12464#12452#12531
         TabOrder = 7
+        Visible = False
         object SpTBXLabel12: TSpTBXLabel
           Left = 16
           Top = 24

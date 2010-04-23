@@ -2810,6 +2810,8 @@ begin
     MessageBeep(MB_ICONASTERISK);
     MessageDlg('ログアウトしました。', mtInformation, [mbOK], -1);
   end
+  (*YouTubeのログインの仕様が変わったためログインできなくなった。
+    対策法が見つかるまでコメントアウトする。
   else if (VideoData.video_type in [0]) and
           not SameText(URL, 'about:blank') and (YouTubeRetryCount in [1,2,3,100,101,102]) then //YouTube
   begin
@@ -2915,6 +2917,7 @@ begin
       procGet := AsyncManager.Get(YOUTUBE_GET_WATCH_URI + VideoData.video_id + Config.optMP4Format, OnDoneYouTube, OnYouTubePreConnect);
     end;
   end
+  *)
   else if (VideoData.video_type in [1..5]) and
        not SameText(URL, 'about:blank') and (NicoVideoRetryCount in [1,2,100,101,200,255]) then //nicovideo
   begin
@@ -5787,8 +5790,11 @@ begin
         end else
         begin
           Log('VideoIDを取得できませんでした。');
+          (*YouTubeのログインの仕様が変わったためログインできなくなった。
+            対策法が見つかるまでコメントアウトする。
           Log('データ再取得開始');
           GetRetry;
+          *)
           procGet := nil;
           exit;
         end;
