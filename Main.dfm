@@ -2374,6 +2374,8 @@ object MainWnd: TMainWnd
     object ActionOpenNicoIchiba: TTntAction
       Category = #12501#12449#12452#12523
       Caption = #12491#12467#12491#12467#24066#22580#12521#12531#12461#12531#12464#12434#38283#12367'(&I)'
+      Enabled = False
+      Visible = False
       OnExecute = ActionOpenNicoIchibaExecute
     end
     object ActionFavoritePopupAddMylist: TTntAction
