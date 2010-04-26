@@ -2149,6 +2149,9 @@ end;
 
 //ウィンドウの最大化・通常・最小化のイベントをフックする
 procedure TMainWnd.WndProc(var Msg: TMessage);
+var
+  PWinPos: PWindowPos;
+  NewRect: TRect;
 begin
   inherited WndProc(Msg);
   if Self.Visible then
@@ -2172,6 +2175,21 @@ begin
             ActionUserWindowSize.Enabled := false;
             ActionToggleWindowSize.Enabled  := false;
           end;
+        end;
+      end;
+      WM_WINDOWPOSCHANGING:
+      begin
+        //枠Pita
+        PWinPos := PWindowPos(Msg.LParam);
+        if (PWinPos^.hwnd = Handle) and (PWinPos^.flags and SWP_NOMOVE = 0) then
+        begin
+          NewRect.Left := PWinPos^.x;
+          NewRect.Top := PWinPos^.y;
+          NewRect.Right := NewRect.Left + Width;
+          NewRect.Bottom := NewRect.Top + Height;
+          PitaMonitor(Handle, NewRect, 10);
+          PWinPos^.x := NewRect.Left;
+          PWinPos^.y := NewRect.Top;
         end;
       end;
     end;
@@ -6443,7 +6461,7 @@ begin
           UpdateDlg.VersionLabel.Caption := 'Version ' + VERSION + ' → ' + 'Version ' + New;
           UpdateDlg.CheckBoxOptUpdateCheck.Checked := not Config.optUpdateCheck;
           try
-            UpdateDlg.ShowModal;
+            ShowModalDlg(Self, UpdateDlg, Config.optFormStayOnTop);
           finally
             UpdateDlg.Release;
           end;
@@ -6823,7 +6841,7 @@ begin
   IsProxy := Config.netUseProxy and (Length(Config.netProxyServer) > 0);
   UIConfig := TUIConfig.Create(self);
   try
-    UIConfig.ShowModal;
+    ShowModalDlg(Self, UIConfig, Config.optFormStayOnTop);
   finally
     UIConfig.Release;
   end;
@@ -6926,7 +6944,7 @@ const
     end;
     InputDlg.Edit.Text := clip;
 
-    rc := InputDlg.ShowModal;
+    rc := ShowModalDlg(Self, InputDlg, Config.optFormStayOnTop);
     if (rc <> 3) then
       Result:= '$$$'
     else
@@ -7184,7 +7202,7 @@ procedure TMainWnd.ActionBugReportExecute(Sender: TObject);
 begin
   BugReport := TBugReport.Create(self);
   try
-    BugReport.ShowModal;
+    ShowModalDlg(Self, BugReport, Config.optFormStayOnTop);
   finally
     BugReport.Release;
   end;
@@ -7255,7 +7273,7 @@ begin
   VersionInfo.LabelCopyright.Caption := Main.COPYRIGHT; 
   VersionInfo.LabelCopyright2.Caption := Main.COPYRIGHT2;
   try
-    VersionInfo.ShowModal;
+    ShowModalDlg(Self, VersionInfo, Config.optFormStayOnTop);
   finally
     VersionInfo.Release;
   end;
@@ -13882,7 +13900,8 @@ const
     end;
     InputDlg.Edit.Text := clip;
 
-    rc := InputDlg.ShowModal;
+    rc := ShowModalDlg(Self, InputDlg, Config.optFormStayOnTop);
+
     if (rc <> 3) then
       Result:= '$$$'
     else
