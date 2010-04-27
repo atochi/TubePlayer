@@ -1788,7 +1788,11 @@ begin
   if not FileExists(basePath + CHECK_DAT) then
   begin
     IsOK := false;
-    GetSystemDirectory(SystemPath, sizeof(SystemPath));  
+    GetSystemDirectory(SystemPath, sizeof(SystemPath));
+    DllPath := GetFlashOcxFilePath;
+    if FileExists(DllPath) then
+      IsOK := True;
+    //Ç±Ç±Ç©ÇÁÅ´ è¡ÇµÇƒÇ‡Ç¢Ç¢ÇØÇ«écÇµÇƒÇ®Ç≠
     if not IsOk then
     begin
       DllPath := String(SystemPath) + '\Macromed\Flash\' + FLASH10C_OCX;
@@ -1849,6 +1853,7 @@ begin
       if FileExists(DllPath) then
         IsOK := True;
     end;
+    //Ç±Ç±Ç‹Ç≈Å™ è¡ÇµÇƒÇ‡Ç¢Ç¢ÇØÇ«écÇµÇƒÇ®Ç≠
     if IsOK then
     begin
       DllPath := String(SystemPath) + '\' + VBS_DLL;

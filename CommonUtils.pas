@@ -3,7 +3,7 @@ unit CommonUtils;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Types, Forms;
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Types, Forms, Registry;
 
 { Variant系 }
 function VarToWStr(const V: Variant): WideString;
@@ -20,6 +20,9 @@ function ExtractURIDir(const URI: string): string;
 { Window系 }
 procedure PitaMonitor(hWnd: THandle; var NewRect: TRect; Margin: SmallInt = 20);
 function ShowModalDlg(MainForm, ModalForm: TForm; StayOnTop: Boolean): Integer;
+
+{ 他 }
+function GetFlashOcxFilePath: string;
 
 implementation
 
@@ -109,6 +112,33 @@ begin
   finally
     if StayOnTop then
       SetWindowPos(MainForm.Handle,HWND_TOPMOST,0,0,0,0,SWP_NOSIZE or SWP_NOMOVE);
+  end;
+end;
+
+//Flashファイル(Flash10d.ocx等)のフルパスを取得
+function GetFlashOcxFilePath: string;
+var
+  Reg: TRegistry;
+  ClassID: string;
+begin
+  Result := '';
+  Reg := TRegistry.Create(KEY_READ);
+  try
+    Reg.RootKey := HKEY_LOCAL_MACHINE;
+    if Reg.OpenKeyReadOnly('SOFTWARE\Classes\ShockwaveFlash.ShockwaveFlash\CLSID') then
+    begin
+      ClassID := Reg.ReadString('');
+      Reg.CloseKey;
+    end;
+    if Length(ClassID) = 0 then
+      ClassID := '{D27CDB6E-AE6D-11cf-96B8-444553540000}';
+    if Reg.OpenKeyReadOnly('SOFTWARE\Classes\CLSID\' + ClassID + '\InprocServer32') then
+    begin
+      Result := Reg.ReadString('');
+      Reg.CloseKey;
+    end;
+  finally
+    Reg.Free;
   end;
 end;
 

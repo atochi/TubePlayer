@@ -8,7 +8,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, TntStdCtrls, Registry, Clipbrd, JMemory,
-  TBXDkPanels, SpTBXControls;
+  TBXDkPanels, SpTBXControls, CommonUtils;
 
 const
   LABEL_CAPTION = 'TubePlayer の不具合を発見された方は下記のテンプレートを用いて'+ #13#10 +
@@ -762,7 +762,11 @@ var
 begin
   Result := '不明';
   IsOk := false;
-  GetSystemDirectory(SystemPath, sizeof(SystemPath));   
+  DllPath := GetFlashOcxFilePath;
+  if FileExists(DllPath) then
+    IsOK := True;
+  //ここから↓ 消してもいいけど残しておく
+  GetSystemDirectory(SystemPath, sizeof(SystemPath));
   if not IsOk then
   begin
     DllPath := String(SystemPath) + '\Macromed\Flash\' + FLASH10C_OCX;
@@ -835,6 +839,7 @@ begin
     if FileExists(DllPath) then
       IsOK := True;
   end;
+  //ここまで↑ 消してもいいけど残しておく
   if not IsOK then
     exit;
 
