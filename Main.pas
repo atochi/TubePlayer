@@ -13695,7 +13695,10 @@ begin
     procGet3 := nil;
     ActionSearchBarSearch.Enabled := True;
     ActionSearchBarSearch2.Enabled := True;
-    ActionSearchBarAdd100.Enabled := false;
+    ActionSearchBarAdd100.Enabled := false; 
+
+    ActionSearchBarToggleListView.Checked := false;
+    ActionSearchBarToggleListView.Enabled := false;
 
     MenuSearchNicoVideo.Enabled := true;
     MenuSearchYouTube.Enabled := true;
