@@ -4302,7 +4302,7 @@ begin
                 tmpInfo := CustomStringReplace(tmpInfo,  '<nobr>', '');
                 tmpInfo := CustomStringReplace(tmpInfo,  '</nobr>', ''); 
                 tmpInfo := CustomStringReplace(tmpInfo,  'Åyï“èWÅz', '');
-                infoContents := infoContents + tmpInfo + #13#10;
+                infoContents := infoContents + '<br>' + tmpInfo + #13#10;
               end;
             end;
           except
