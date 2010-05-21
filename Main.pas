@@ -13597,49 +13597,52 @@ begin
             begin
               // ここでマイリストの解析
 
-              RegExp.Pattern := '\s*Mylist\.preload(\d*).*(\[.*\])\);';
+              RegExp.Pattern := '\s*Mylist\.preload\(\d*[^\[]*(\[.*\])\);';
               try
                 if RegExp.Test(Content) then
                 begin
-                  Content := RegExp.Replace(Content, '$2');
+                  Content := RegExp.Replace(Content, '$1');
                 end;
               except
                 break;
               end;
 
               json := TlkJSON.ParseText(Content);
-              for j := 0 to pred(json.Count) do
+              if json <> nil then
               begin
-                list := json.Child[j] as TlkJSONobject;
-                SearchList.Add(TSearchData.Create);
-                with TSearchData(SearchList.Last) do
+                for j := 0 to json.Count -1 do
                 begin
-                  video_type := 1;
-                  video_id := list.Field['item_data'].Field['watch_id'].Value;
-                  view_count := list.Field['item_data'].Field['view_counter'].Value;
-                  comment_count := list.Field['item_data'].Field['num_res'].Value;
-                  rationg_count := list.Field['item_data'].Field['num_res'].Value;
-                  playtime_seconds := list.Field['item_data'].Field['length_seconds'].Value;
-                  try
-                    nPlayTime := StrToInt(playtime_seconds);
-                    playtime := FormatFloat('0#', (nPlayTime div 60)) + ':' + FormatFloat('0#', (nPlayTime mod 60));
-                    rating_avg := FloatToStrF(StrToIntDef(rationg_count, 0) / StrToInt(playtime_seconds) * 60 ,ffFixed, 7, 1);
-                  except
-                    playtime := '';
-                    rating_avg := '';
-                  end;
+                  list := json.Child[j] as TlkJSONobject;
+                  SearchList.Add(TSearchData.Create);
+                  with TSearchData(SearchList.Last) do
+                  begin
+                    video_type := 1;
+                    video_id := list.Field['item_data'].Field['watch_id'].Value;
+                    view_count := list.Field['item_data'].Field['view_counter'].Value;
+                    comment_count := list.Field['item_data'].Field['num_res'].Value;
+                    rationg_count := list.Field['item_data'].Field['num_res'].Value;
+                    playtime_seconds := list.Field['item_data'].Field['length_seconds'].Value;
+                    try
+                      nPlayTime := StrToInt(playtime_seconds);
+                      playtime := FormatFloat('0#', (nPlayTime div 60)) + ':' + FormatFloat('0#', (nPlayTime mod 60));
+                      rating_avg := FloatToStrF(StrToIntDef(rationg_count, 0) / StrToInt(playtime_seconds) * 60 ,ffFixed, 7, 1);
+                    except
+                      playtime := '';
+                      rating_avg := '';
+                    end;
 
-                  try
-                    upload_unixtime := list.Field['create_time'].Value;
-                    nUploadTime := StrToInt(upload_unixtime);
-                    DateTime := EncodeDate(1970,1,1) + (nUploadTime + 32400) div 86400 + (nUploadTime mod 86400) / 86400;
-                    upload_time := FormatDateTime('yyyy/mm/dd(aaa) hh:nn:ss', DateTime);
-                  except
-                    upload_time := '----/--/--(--) --:--:--';
-                  end;
+                    try
+                      upload_unixtime := list.Field['create_time'].Value;
+                      nUploadTime := StrToInt(upload_unixtime);
+                      DateTime := EncodeDate(1970,1,1) + (nUploadTime + 32400) div 86400 + (nUploadTime mod 86400) / 86400;
+                      upload_time := FormatDateTime('yyyy/mm/dd(aaa) hh:nn:ss', DateTime);
+                    except
+                      upload_time := '----/--/--(--) --:--:--';
+                    end;
 
-                  // todo
-                  video_title := list.Field['item_data'].Field['title'].Value;
+                    // todo
+                    video_title := list.Field['item_data'].Field['title'].Value;
+                  end;
                 end;
               end;
               ContentExist := True;
