@@ -102,6 +102,7 @@ object MainWnd: TMainWnd
           Width = 128
           Height = 326
           Align = alClient
+          AutoScrollDelay = 100
           ClipboardFormats.Strings = (
             'Virtual Tree Data')
           DragMode = dmAutomatic
