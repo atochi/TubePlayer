@@ -4003,7 +4003,7 @@ var
   tmpInfo: String;
 
   flvContents: String;
-  ICHIBA_URI: String;
+  //ICHIBA_URI: String;
   busyflag: boolean;
 
   addVariable: String;
@@ -13515,23 +13515,14 @@ end;
 procedure TMainWnd.OnDoneNicoMyList(sender: TAsyncReq);
 var
   i,j: integer;
-  TotalCount: String;
   ContentList: TStringList;
   SearchDataList: TStringList;
-  tmpSearchData: String;
   ContentExist: boolean;
-  Matches: MatchCollection;
-  tmp, min, sec: String;
-  tmptime: String;
   DateTime: TDateTime;
-  second: integer;
 
   Content: String;
 
-  vJsonObj: TlkJsonObject;
-  vJsonChildObj: TlkJsonObject;
-  vJsonStr: String;
-  json,item:TlkJSONbase;
+  json:TlkJSONbase; 
   list: TlkJsonObject;
   nPlayTime: Integer;
   nUploadTime: Integer;
@@ -13663,7 +13654,6 @@ begin
         finally
           ContentList.Free;
           SearchDataList.Free;
-          vJsonObj.Free;
         end;
         Log('ÉfÅ[É^ï™êÕäÆóπ');
 
