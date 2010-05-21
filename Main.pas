@@ -31,7 +31,9 @@ uses
   //IdCookie, //セッション取得用
   WinInet, URLMon, //Proxy切り替え用
   FileVerInfo, UAsync, USynchro, USharedMem, StrSub, HTTPSub, JLTrayIcon,
-  HogeListView, Config, UFavorite, UXMLSub, VirtualTrees;
+  HogeListView, Config, UFavorite, UXMLSub, VirtualTrees,
+  // JSON
+  uLkJSON;
 
 const
   VERSION  = '2.30β';
@@ -8623,7 +8625,7 @@ begin
           24: URI := NICOVIDEO_GET_SEARCH_TAG_URI + SearchWord + '?page=' + IntToStr(SearchPage) + '&sort=n&order=d'; //タグ検索-コメントが新しい順
           25: URI := NICOVIDEO_GET_SEARCH_TAG_URI + SearchWord + '?page=' + IntToStr(SearchPage) + '&sort=n&order=a'; //タグ検索-コメントが古い順
           26: URI := NICOVIDEO_GET_SEARCH_TAG_URI + SearchWord + '?page=' + IntToStr(SearchPage) + '&sort=r&order=d'; //タグ検索-コメントが多い順
-          27: URI := NICOVIDEO_GET_SEARCH_TAG_URI + SearchWord + '?page=' + IntToStr(SearchPage) + '&sort=r&order=a'; //タグ検索-コメントが少ない順 
+          27: URI := NICOVIDEO_GET_SEARCH_TAG_URI + SearchWord + '?page=' + IntToStr(SearchPage) + '&sort=r&order=a'; //タグ検索-コメントが少ない順
           28: URI := NICOVIDEO_GET_SEARCH_TAG_URI + SearchWord + '?page=' + IntToStr(SearchPage) + '&sort=m&order=d'; //タグ検索-マイリスト登録数が多い順
           29: URI := NICOVIDEO_GET_SEARCH_TAG_URI + SearchWord + '?page=' + IntToStr(SearchPage) + '&sort=m&order=a'; //タグ検索-マイリスト登録数が少ない順
         end;
@@ -8703,7 +8705,7 @@ begin
       6:  LabelWord := 'ニコニコ動画(コメントが新しい順) ';
       7:  LabelWord := 'ニコニコ動画(コメントが古い順)';
       8:  LabelWord := 'ニコニコ動画(コメントが多い順)';
-      9:  LabelWord := 'ニコニコ動画(コメントが少ない順) '; 
+      9:  LabelWord := 'ニコニコ動画(コメントが少ない順) ';
       10: LabelWord := 'ニコニコ動画(マイリスト登録数が多い順)';
       11: LabelWord := 'ニコニコ動画(マイリスト登録数が少ない順) ';
       20: LabelWord := 'ニコニコ動画(タグ検索-投稿日時が新しい順) ';
@@ -8713,7 +8715,7 @@ begin
       24: LabelWord := 'ニコニコ動画(タグ検索-コメントが新しい順) ';
       25: LabelWord := 'ニコニコ動画(タグ検索-コメントが古い順) ';
       26: LabelWord := 'ニコニコ動画(タグ検索-コメントが多い順) ';
-      27: LabelWord := 'ニコニコ動画(タグ検索-コメントが少ない順) ';  
+      27: LabelWord := 'ニコニコ動画(タグ検索-コメントが少ない順) ';
       28: LabelWord := 'ニコニコ動画(タグ検索-マイリスト登録数が多い順) ';
       29: LabelWord := 'ニコニコ動画(タグ検索-マイリスト登録数が少ない順) ';
     end;
@@ -9249,7 +9251,7 @@ begin
     Config.Modified := True;
     ActionToggleSearchBar.Checked := ToolBarSearchBar.Visible;
   end;
-  
+
   if (Self.WindowState = wsNormal) and (width > 0) and (height > 0) then
   begin
     width  := width + DockLeft.Width + DockLeft2.Width + DockRight.Width + DockRight2.Width;
@@ -13512,13 +13514,12 @@ end;
 //マイリスト
 procedure TMainWnd.OnDoneNicoMyList(sender: TAsyncReq);
 var
-  i: integer;
+  i,j: integer;
   TotalCount: String;
   ContentList: TStringList;
   SearchDataList: TStringList;
   tmpSearchData: String;
-  ContentsStart: boolean;
-  DataStart: boolean;
+  ContentExist: boolean;
   Matches: MatchCollection;
   tmp, min, sec: String;
   tmptime: String;
@@ -13526,6 +13527,14 @@ var
   second: integer;
 
   Content: String;
+
+  vJsonObj: TlkJsonObject;
+  vJsonChildObj: TlkJsonObject;
+  vJsonStr: String;
+  json,item:TlkJSONbase;
+  list: TlkJsonObject;
+  nPlayTime: Integer;
+  nUploadTime: Integer;
 
   procedure GetRetry;
   var
@@ -13575,193 +13584,68 @@ begin
 
         ContentList := TStringList.Create;
         SearchDataList := TStringList.Create;
+        ContentExist := false;
         try
           ContentList.Text := procGet3.Content;
-          TotalCount := '';
 
-          ContentsStart := false;
-          DataStart := false;
-          tmpSearchData := '';
           for i := 0 to ContentList.Count -1 do
           begin
             Content := UTF8toAnsi(ContentList[i]);
-            if Length(Content) <= 0 then
-              Continue;
-            if not ContentsStart then
+
+            // データが存在するか
+            if (AnsiPos('Mylist.preload', Content) > 0) then
             begin
-              if (AnsiPos('id="mylists"', Content) > 0) or (AnsiPos('summary="一覧"', Content) > 0) then
-                ContentsStart := True
-              else if (AnsiPos('>登録はありません。<"', Content) > 0) then
-              begin
-                ContentsStart := True;
+              // ここでマイリストの解析
+
+              RegExp.Pattern := '\s*Mylist\.preload(\d*).*(\[.*\])\);';
+              try
+                if RegExp.Test(Content) then
+                begin
+                  Content := RegExp.Replace(Content, '$2');
+                end;
+              except
                 break;
               end;
-              Continue;
-            end;
-            if not DataStart and (AnsiPos('<tr ', Content) > 0) then
-            begin
-              DataStart := True;
-              tmpSearchData := Content;
-            end
-            else if DataStart and (AnsiPos('</tr>', Content) > 0) then
-            begin
-              tmpSearchData := tmpSearchData + Content;
-              if (AnsiPos('コメント', tmpSearchData) > 0) then
+
+              json := TlkJSON.ParseText(Content);
+              for j := 0 to pred(json.Count) do
               begin
-                RegExp.Pattern := GET_VIDEO_ID;
-                if RegExp.Test(tmpSearchData) then
-                  SearchDataList.Add(tmpSearchData);
+                list := json.Child[j] as TlkJSONobject;
+                SearchList.Add(TSearchData.Create);
+                with TSearchData(SearchList.Last) do
+                begin
+                  video_type := 1;
+                  video_id := list.Field['item_data'].Field['watch_id'].Value;
+                  view_count := list.Field['item_data'].Field['view_counter'].Value;
+                  comment_count := list.Field['item_data'].Field['num_res'].Value;
+                  rationg_count := list.Field['item_data'].Field['num_res'].Value;
+                  playtime_seconds := list.Field['item_data'].Field['length_seconds'].Value;
+                  try
+                    nPlayTime := StrToInt(playtime_seconds);
+                    playtime := FormatFloat('0#', (nPlayTime div 60)) + ':' + FormatFloat('0#', (nPlayTime mod 60));
+                    rating_avg := FloatToStrF(StrToIntDef(rationg_count, 0) / StrToInt(playtime_seconds) * 60 ,ffFixed, 7, 1);
+                  except
+                    playtime := '';
+                    rating_avg := '';
+                  end;
+
+                  try
+                    upload_unixtime := list.Field['create_time'].Value;
+                    nUploadTime := StrToInt(upload_unixtime);
+                    DateTime := EncodeDate(1970,1,1) + (nUploadTime + 32400) div 86400 + (nUploadTime mod 86400) / 86400;
+                    upload_time := FormatDateTime('yyyy/mm/dd(aaa) hh:nn:ss', DateTime);
+                  except
+                    upload_time := '----/--/--(--) --:--:--';
+                  end;
+
+                  // todo
+                  video_title := list.Field['item_data'].Field['title'].Value;
+                end;
               end;
-              DataStart := false;
-              tmpSearchData := '';
-            end else if DataStart then
-            begin
-              tmpSearchData := tmpSearchData + Content;
+              ContentExist := True;
+              break;
             end;
           end;
-
-          if SearchDataList.Count > 0 then
-          begin
-            for i := 0 to SearchDataList.Count -1 do
-            begin
-              //Log(SearchDataList.Strings[i]);
-              tmpSearchData := SearchDataList.Strings[i];
-              SearchList.Add(TSearchData.Create);
-              with TSearchData(SearchList.Last) do
-              begin
-                video_type := 1;
-                html := tmpSearchData;
-                RegExp.Pattern := GET_VIDEO_TITLE;
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      video_title := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(video_title) > 0 then
-                        video_title := RegExp.Replace(video_title, '$1');
-                      video_title := CustomStringReplace(video_title,  '&quot;', '"');
-                      video_title := CustomStringReplace(video_title,  '&amp;', '&');
-                      video_title := CustomStringReplace(video_title,  '&lt; ', '<');
-                      video_title := CustomStringReplace(video_title,  '&gt;', '>');
-                      //Log(video_title);
-                    end;
-                  except
-                    video_title := '';
-                  end;
-                end;
-                RegExp.Pattern := GET_VIDEO_ID;
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      video_id := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(video_id) > 0 then
-                        video_id := RegExp.Replace(video_id, '$1');
-                      //Log(video_id);
-                    end;
-                  except
-                    video_id := '';
-                  end;
-                end;
-                RegExp.Pattern := GET_PLAYTIME_SECONDS;
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      tmp := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(tmp) > 0 then
-                      begin
-                        min := RegExp.Replace(tmp, '$1');
-                        sec := RegExp.Replace(tmp, '$2');
-                        if (Length(min) > 0) and (Length(sec) > 0) then
-                        try
-                          playtime_seconds := IntToStr(StrToInt(min)*60 + StrToInt(sec));
-                        except
-                          playtime_seconds := ''
-                        end;
-                      end;
-                      //Log(playtime_seconds);
-                      if Length(playtime_seconds) > 0 then
-                      begin
-                        second := StrToIntDef(playtime_seconds, 0);
-                        try
-                          playtime := FormatFloat('0#', (second div 60)) + ':' + FormatFloat('0#', (second mod 60));
-                        except
-                          playtime := playtime_seconds + 'sec';
-                        end;
-                      end;
-                      //Log(playtime);
-                    end;
-                  except
-                  end;
-                end;
-                RegExp.Pattern := GET_VIEW_COUNT;
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      view_count := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(view_count) > 0 then
-                      begin
-                        view_count := RegExp.Replace(view_count, '$1');
-                        view_count := CustomStringReplace(view_count,  ',', '');
-                      end;
-                      //Log(view_count);
-                    end;
-                  except
-                    view_count := '';
-                  end;
-                end;
-                RegExp.Pattern := GET_RATIONG_COUNT; //コメント数
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      rationg_count := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(rationg_count) > 0 then
-                      begin
-                        rationg_count := RegExp.Replace(rationg_count, '$1');
-                        rationg_count := CustomStringReplace(rationg_count,  ',', '');
-                      end;
-                      //Log(rationg_count);
-                    end;
-                  except
-                    rationg_count := '';
-                  end;
-                end;
-                RegExp.Pattern := GET_UPLOAD_TIME; //アップロードされた時間
-                begin
-                  try
-                    if RegExp.Test(tmpSearchData) then
-                    begin
-                      Matches := RegExp.Execute(tmpSearchData) as MatchCollection;
-                      tmp := AnsiString(Match(Matches.Item[0]).Value);
-                      if Length(tmp) > 0 then
-                      begin
-                        tmptime := RegExp.Replace(tmp, '$1') + '/' + RegExp.Replace(tmp, '$2') + '/' + RegExp.Replace(tmp, '$3') + ' ' +
-                                   RegExp.Replace(tmp, '$4') + ':' + RegExp.Replace(tmp, '$5');
-                        DateSeparator := '/';
-                        DateTime := StrToDateTime(tmptime);
-                        upload_unixtime := IntToStr(DateTimeToUnix(DateTime));
-                        upload_time := FormatDateTime('yyyy/mm/dd(aaa) hh:nn:ss', DateTime);
-                      end;
-                      //Log(upload_time);
-                    end;
-                  except
-                    upload_unixtime := '';
-                    upload_time := '';
-                  end;
-                end;
-                if (Length(playtime_seconds) > 0) and (Length(rationg_count) > 0) and (StrToInt(playtime_seconds) > 0) then
-                begin
-                  rating_avg := FloatToStrF(StrToIntDef(rationg_count, 0) / StrToInt(playtime_seconds) * 60 ,
-                                                        ffFixed, 7, 1);
-                end;
 
                 (*
                 Log('*****');
@@ -13773,18 +13657,14 @@ begin
                 Log(rationg_count);
                 Log(upload_time);
                 *)
-
-              end;
-            end;
-          end;
-
         finally
           ContentList.Free;
           SearchDataList.Free;
+          vJsonObj.Free;
         end;
         Log('データ分析完了');
 
-        if not ContentsStart then
+        if not ContentExist then
         begin
           Log('有効なデータを取得できませんでした。');
           Log('データ再取得開始');
