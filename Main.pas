@@ -1411,7 +1411,7 @@ type
     *)
 
     procedure OnDoneNicoVideo(sender: TAsyncReq);
-    procedure OnDoneNicoVideoIchiba(sender: TAsyncReq); 
+    procedure OnDoneNicoVideoIchiba(sender: TAsyncReq);
     procedure OnDoneNicoIchibaRanking(sender: TAsyncReq);
     procedure OnDoneAmazon(sender: TAsyncReq); 
     procedure OnDoneAmazon2(sender: TAsyncReq);
@@ -8400,8 +8400,8 @@ begin
       begin
         SearchType := 1;
         NicoVideoRetryCount := 0;
-        Log('検索開始 [' + SearchWord + ']   [1-' + IntToStr(SearchPage*30) + ']');
-        SpTBXDockablePanelSearch.Caption := LabelWord + '[' + SearchWord + ']   [1-' + IntToStr(SearchPage*30) + ']   <取得中>';
+        Log('検索開始 [' + SearchWord + ']   [1-' + IntToStr(SearchPage*20) + ']');
+        SpTBXDockablePanelSearch.Caption := LabelWord + '[' + SearchWord + ']   [1-' + IntToStr(SearchPage*20) + ']   <取得中>';
         SearchWord := URLEncode(UTF8Encode(SearchWord));
         case Config.optSearchTarget of
           2:  URI := NICOVIDEO_GET_SEARCH_URI + SearchWord + '?page=1&sort=f&order=d'; //投稿日時が新しい順
@@ -8603,8 +8603,8 @@ begin
         SearchType := 1;
         NicoVideoRetryCount := 0;
 
-        Log('検索開始 [' + SearchWord + ']   [1-' + IntToStr(SearchPage*30) + ']');
-        SpTBXDockablePanelSearch.Caption := LabelWord + '[' + SearchWord + ']   [1-' + IntToStr(SearchPage*30) + ']   <取得中>';
+        Log('検索開始 [' + SearchWord + ']   [1-' + IntToStr(SearchPage*20) + ']');
+        SpTBXDockablePanelSearch.Caption := LabelWord + '[' + SearchWord + ']   [1-' + IntToStr(SearchPage*20) + ']   <取得中>';
 
         SearchWord := URLEncode(UTF8Encode(SearchWord));
         case Config.optSearchTarget of
@@ -8688,7 +8688,7 @@ var
 
 const
   GET_TOTALCOUNT       = '<strong(?:[^>]+)?>([\d,]+)件?</strong>';
-  GET_VIDEO_TITLE      = '<span class="vinfo_title">([^<]+)</span>';
+  GET_VIDEO_TITLE      = 'class="vinfo_title" title="([^"]+)"';
   GET_VIDEO_ID         = '"watch\/([^"]+)"';
   GET_PLAYTIME_SECONDS = '>(\d{1,3}):(\d{2})<';
   GET_VIEW_COUNT       = '<strong class="vinfo_view">([\d,]+)</strong>';
@@ -8795,12 +8795,12 @@ begin
               end else //通常検索・新着投稿動画・ホットリスト
               }
               begin
-                if (AnsiPos('class="thumb_frm"', ContentList[i]) > 0) then
+                if (AnsiPos('class="thumb_vinfo"', ContentList[i]) > 0) then
                 begin
                   DataStart := True;
                   tmpSearchData := ContentList[i];
                 end else if DataStart and (AnsiPos('</div>', ContentList[i]) > 0) and
-                            (AnsiPos('<!---->', ContentList[i-1]) > 0) then
+                            (AnsiPos('</table>', ContentList[i-1]) > 0) then
                 begin
                   DataStart := false;
                   tmpSearchData := tmpSearchData + '</div>';
@@ -9017,7 +9017,7 @@ begin
     case SearchType of
       1: //ニコニコ動画(通常検索)
       begin
-      if SearchList.Count >= SearchPage * 30 then
+      if SearchList.Count >= SearchPage * 20 then
         ActionSearchBarAdd100.Enabled := true
       else
         ActionSearchBarAdd100.Enabled := false;
@@ -9035,7 +9035,7 @@ begin
       end;
       5: //ニコニコ動画(タグ検索)
       begin
-      if (SearchList.Count >= SearchPage * 30) and (SearchPage * 30 < 300) then
+      if (SearchList.Count >= SearchPage * 30) then
         ActionSearchBarAdd100.Enabled := true
       else
         ActionSearchBarAdd100.Enabled := false;
