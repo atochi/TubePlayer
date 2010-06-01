@@ -36,7 +36,7 @@ uses
   uLkJSON;
 
 const
-  VERSION  = '2.30É¿2';
+  VERSION  = '2.30É¿3';
   APPLICATION_NAME  = 'TubePlayer';
 
   DISTRIBUTORS_SITE = 'http://janesoft.net/tube/';
