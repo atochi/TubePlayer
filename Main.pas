@@ -5908,8 +5908,15 @@ var
     end;
   end;
 
+const
+ NOCOMMENT_FOOTER = 'コメント機能無効の動画です。' +
+                    '</dl><br>' +
+                    'powered by <a href="http://jp.youtube.com">YouTube</a>' +
+                    '</body>' +
+                    '</html>';
 var
   HintString: String;
+  innerHTML: String;
 begin
   CommentsURL := '';
   if procGet = sender then
@@ -5985,6 +5992,48 @@ begin
     begin
       Log('コメント取得開始 (' + VideoData.video_id + ')');
       procGet := AsyncManager.Get(CommentsURL, OnDoneYouTubeComments);
+    end else
+    begin
+      innerHTML := HeaderHTML + NOCOMMENT_FOOTER;
+      with VideoData do
+      begin
+        innerHTML := CustomStringReplace(innerHTML, '$SKINPATH', Config.optSkinPath);
+        innerHTML := CustomStringReplace(innerHTML, '$BR', '<br>');
+        innerHTML := CustomStringReplace(innerHTML, '$VIDEOTITLE', video_title);
+        innerHTML := CustomStringReplace(innerHTML, '$VIDEOID', video_id);
+        innerHTML := CustomStringReplace(innerHTML, '$AUTHOR_LINK', author_link);
+        innerHTML := CustomStringReplace(innerHTML, '$AUTHOR', author);
+        innerHTML := CustomStringReplace(innerHTML, '$THUMBNAIL_URL1', thumbnail_url1);
+        innerHTML := CustomStringReplace(innerHTML, '$THUMBNAIL_URL2', thumbnail_url2);
+        innerHTML := CustomStringReplace(innerHTML, '$THUMBNAIL_URL3', thumbnail_url3);
+        innerHTML := CustomStringReplace(innerHTML, '$TAGS', tags);
+        innerHTML := CustomStringReplace(innerHTML, '$CHANNEL', channnel);
+        innerHTML := CustomStringReplace(innerHTML, '$RATING_AVG', rating_avg);
+        innerHTML := CustomStringReplace(innerHTML, '$RATING_COUNT', rationg_count);
+        innerHTML := CustomStringReplace(innerHTML, '$RATING', rating);
+        innerHTML := CustomStringReplace(innerHTML, '$VIEW_COUNT', view_count);
+        innerHTML := CustomStringReplace(innerHTML, '$DESCRIPTION', description);
+        innerHTML := CustomStringReplace(innerHTML, '$COMMENT_COUNT', comment_count);
+        innerHTML := CustomStringReplace(innerHTML, '$FAVORITED_COUNT', favorited_count);
+        innerHTML := CustomStringReplace(innerHTML, '$UPDATE_TIME', update_time);
+        innerHTML := CustomStringReplace(innerHTML, '$UPLOAD_TIME', upload_time);
+        innerHTML := CustomStringReplace(innerHTML, '$PLAYTIME_SECONDS', playtime_seconds);
+        innerHTML := CustomStringReplace(innerHTML, '$PLAYTIME', playtime);
+        innerHTML := CustomStringReplace(innerHTML, '$RECORDING_DATE', recording_date);
+        innerHTML := CustomStringReplace(innerHTML, '$RECORDING_LOCATION', recording_location);
+        innerHTML := CustomStringReplace(innerHTML, '$RECORDING_COUNTRY', recording_country);
+      end;
+      WebBrowser2.LoadFromString(innerHTML);
+      Log('データ分析完了');
+      SpTBXDockablePanelVideoInfo.Caption := 'ビデオ情報';
+
+      if Length(VideoData.tags) > 0 then
+      begin
+        Log('');
+        SpTBXDockablePanelVideoRelated.Caption := '関連ビデオ' + ' <取得中>';
+        Log('関連ビデオ取得開始 (' + VideoData.video_id + ')');
+        procGet := AsyncManager.Get(YOUTUBE_GET_RELATED_URI_FRONT + VideoData.video_id + YOUTUBE_GET_RELATED_URI_BACK, OnDoneYouTubeRelated);
+      end;
     end;
   end;
 end;
