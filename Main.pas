@@ -8844,15 +8844,15 @@ begin
               end else //通常検索・新着投稿動画・ホットリスト
               }
               begin
-                if (AnsiPos('class="thumb_vinfo"', ContentList[i]) > 0) then
+                if (AnsiPos('<table', ContentList[i]) > 0) and
+                   (AnsiPos('<!---->', ContentList[i-1]) > 0) then
                 begin
                   DataStart := True;
                   tmpSearchData := ContentList[i];
-                end else if DataStart and (AnsiPos('</div>', ContentList[i]) > 0) and
+                end else if DataStart and (AnsiPos('<!---->', ContentList[i]) > 0) and
                             (AnsiPos('</table>', ContentList[i-1]) > 0) then
                 begin
                   DataStart := false;
-                  tmpSearchData := tmpSearchData + '</div>';
                   SearchDataList.Add(tmpSearchData);
                   tmpSearchData := '';
                 end else if DataStart then
