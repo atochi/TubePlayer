@@ -8594,7 +8594,7 @@ begin
       begin
         NicoVideoRetryCount := 0;
         Log(SearchWord + '   [1-' + IntToStr(SearchPage*30) + '] 取得開始');
-        SpTBXDockablePanelSearch.Caption := SearchWord +  '   [1-' + IntToStr(SearchPage*30) + ']   <取得中>';
+        SpTBXDockablePanelSearch.Caption := SearchWord +  '   [1-' + IntToStr(SearchPage*32) + ']   <取得中>';
         URI := tmpSearchURI + '?page=' + IntToStr(SearchPage);
         Log('');
         procGet3 := AsyncManager.Get(URI, OnNicoVideoSearch, OnNicoVideoPreConnect);
@@ -8652,8 +8652,8 @@ begin
         SearchType := 1;
         NicoVideoRetryCount := 0;
 
-        Log('検索開始 [' + SearchWord + ']   [1-' + IntToStr(SearchPage*20) + ']');
-        SpTBXDockablePanelSearch.Caption := LabelWord + '[' + SearchWord + ']   [1-' + IntToStr(SearchPage*20) + ']   <取得中>';
+        Log('検索開始 [' + SearchWord + ']   [1-' + IntToStr(SearchPage*32) + ']');
+        SpTBXDockablePanelSearch.Caption := LabelWord + '[' + SearchWord + ']   [1-' + IntToStr(SearchPage*32) + ']   <取得中>';
 
         SearchWord := URLEncode(UTF8Encode(SearchWord));
         case Config.optSearchTarget of
@@ -8742,7 +8742,7 @@ const
   GET_PLAYTIME_SECONDS = '>(\d{1,3}):(\d{2})<';
   GET_VIEW_COUNT       = '<strong class="vinfo_view">([\d,]+)</strong>';
   GET_RATIONG_COUNT    = '<strong class="vinfo_res">([\d,]+)</strong>';
-  GET_UPLOAD_TIME      = '(\d+)/(\d+)/(\d+)[\s]?(\d+):(\d+)';
+  GET_UPLOAD_TIME      = '(\d+)(?:/|年)(\d+)(?:/|月)(\d+)(?:日)[\s]?(\d+):(\d+)';
 begin
   if procGet3 = sender then
   begin
@@ -8844,13 +8844,13 @@ begin
               end else //通常検索・新着投稿動画・ホットリスト
               }
               begin
-                if (AnsiPos('<table', ContentList[i]) > 0) and
-                   (AnsiPos('<!---->', ContentList[i-1]) > 0) then
+                if (AnsiPos('<!---->', ContentList[i]) > 0) and
+                   (AnsiPos('<div style="float', ContentList[i-1]) > 0) then
                 begin
                   DataStart := True;
                   tmpSearchData := ContentList[i];
                 end else if DataStart and (AnsiPos('<!---->', ContentList[i]) > 0) and
-                            (AnsiPos('</table>', ContentList[i-1]) > 0) then
+                            (AnsiPos('</div>', ContentList[i-1]) > 0) then
                 begin
                   DataStart := false;
                   SearchDataList.Add(tmpSearchData);
@@ -9066,14 +9066,14 @@ begin
     case SearchType of
       1: //ニコニコ動画(通常検索)
       begin
-      if SearchList.Count >= SearchPage * 20 then
+      if SearchList.Count >= SearchPage * 32 then
         ActionSearchBarAdd100.Enabled := true
       else
         ActionSearchBarAdd100.Enabled := false;
       end;
       3: //ニコニコ動画(新着投稿)
       begin
-      if (SearchList.Count >= SearchPage * 30) and (SearchPage * 30 < 300) then
+      if (SearchList.Count >= SearchPage * 32) and (SearchPage * 32 < 300) then
         ActionSearchBarAdd100.Enabled := true
       else
         ActionSearchBarAdd100.Enabled := false;
@@ -9084,7 +9084,7 @@ begin
       end;
       5: //ニコニコ動画(タグ検索)
       begin
-      if (SearchList.Count >= SearchPage * 30) then
+      if (SearchList.Count >= SearchPage * 32) then
         ActionSearchBarAdd100.Enabled := true
       else
         ActionSearchBarAdd100.Enabled := false;
